@@ -432,9 +432,24 @@ jobs:
     - name: Dump Build Errors
       if: failure()
       run: |
+        echo "=== Searching for build logs ==="
+        # Bazel logs
+        for BLOG in $(find "$HOME/.cache/bazel" -name 'command.log' 2>/dev/null | head -3); do
+          echo "::group::Bazel command.log"
+          tail -200 "$BLOG"
+          echo "::endgroup::"
+        done
+        # Kernel logs
         for LOG in $(find "$KERNEL_ROOT" -name '*.log' -newer "$KERNEL_ROOT/common" -type f 2>/dev/null | head -5); do
           echo "::group::$(basename "$LOG")"
           tail -80 "$LOG"
+          echo "::endgroup::"
+        done
+        # Show Bazel execution log
+        BAZEL_OUT=$(find "$KERNEL_ROOT" -path "*/bazel-out/*" -name "*.log" 2>/dev/null | head -5)
+        for BL in $BAZEL_OUT; do
+          echo "::group::$(basename "$BL")"
+          tail -80 "$BL"
           echo "::endgroup::"
         done
 
