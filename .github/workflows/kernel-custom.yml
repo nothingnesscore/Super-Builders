@@ -441,13 +441,13 @@ jobs:
       kernel_version: ${{ needs.resolve.outputs.kernel_version }}
       sub_level: ${{ needs.resolve.outputs.sub_level }}
       os_patch_level: ${{ needs.resolve.outputs.os_patch_level }}
-      add_susfs: ${{ inputs.add_susfs == '' || inputs.add_susfs }}
-      add_zeromount: ${{ inputs.add_zeromount == '' || inputs.add_zeromount }}
-      add_zram: ${{ inputs.add_zram == '' || inputs.add_zram }}
-      add_bbg: ${{ inputs.add_bbg == '' || inputs.add_bbg }}
-      add_overlayfs_support: ${{ inputs.add_overlayfs_support == '' || inputs.add_overlayfs_support }}
-      add_kpm: ${{ inputs.add_kpm }}
-      sukisu_commit: ${{ inputs.sukisu_commit }}
+      add_susfs: true
+      add_zeromount: true
+      add_zram: true
+      add_bbg: true
+      add_overlayfs_support: true
+      add_kpm: false
+      sukisu_commit: ''
       device_codename: ${{ needs.resolve.outputs.device_codename }}
 
   build-ksu-next:
@@ -458,13 +458,13 @@ jobs:
       kernel_version: ${{ needs.resolve.outputs.kernel_version }}
       sub_level: ${{ needs.resolve.outputs.sub_level }}
       os_patch_level: ${{ needs.resolve.outputs.os_patch_level }}
-      add_susfs: ${{ inputs.add_susfs == '' || inputs.add_susfs }}
-      add_zeromount: ${{ inputs.add_zeromount == '' || inputs.add_zeromount }}
-      add_zram: ${{ inputs.add_zram == '' || inputs.add_zram }}
-      add_bbg: ${{ inputs.add_bbg == '' || inputs.add_bbg }}
-      add_overlayfs_support: ${{ inputs.add_overlayfs_support == '' || inputs.add_overlayfs_support }}
-      add_kpm: ${{ inputs.add_kpm }}
-      sukisu_commit: ${{ inputs.sukisu_commit }}
+      add_susfs: true
+      add_zeromount: true
+      add_zram: true
+      add_bbg: true
+      add_overlayfs_support: true
+      add_kpm: false
+      sukisu_commit: ''
       device_codename: ${{ needs.resolve.outputs.device_codename }}
 
   build-resukisu:
@@ -475,13 +475,13 @@ jobs:
       kernel_version: ${{ needs.resolve.outputs.kernel_version }}
       sub_level: ${{ needs.resolve.outputs.sub_level }}
       os_patch_level: ${{ needs.resolve.outputs.os_patch_level }}
-      add_susfs: ${{ inputs.add_susfs == '' || inputs.add_susfs }}
-      add_zeromount: ${{ inputs.add_zeromount == '' || inputs.add_zeromount }}
-      add_zram: ${{ inputs.add_zram == '' || inputs.add_zram }}
-      add_bbg: ${{ inputs.add_bbg == '' || inputs.add_bbg }}
-      add_overlayfs_support: ${{ inputs.add_overlayfs_support == '' || inputs.add_overlayfs_support }}
-      add_kpm: ${{ inputs.add_kpm }}
-      sukisu_commit: ${{ inputs.sukisu_commit }}
+      add_susfs: true
+      add_zeromount: true
+      add_zram: true
+      add_bbg: true
+      add_overlayfs_support: true
+      add_kpm: false
+      sukisu_commit: ''
       device_codename: ${{ needs.resolve.outputs.device_codename }}
 
   build-wksu:
@@ -492,11 +492,11 @@ jobs:
       kernel_version: ${{ needs.resolve.outputs.kernel_version }}
       sub_level: ${{ needs.resolve.outputs.sub_level }}
       os_patch_level: ${{ needs.resolve.outputs.os_patch_level }}
-      add_susfs: ${{ inputs.add_susfs == '' || inputs.add_susfs }}
-      add_zeromount: ${{ inputs.add_zeromount == '' || inputs.add_zeromount }}
-      add_zram: ${{ inputs.add_zram == '' || inputs.add_zram }}
-      add_bbg: ${{ inputs.add_bbg == '' || inputs.add_bbg }}
-      add_overlayfs_support: ${{ inputs.add_overlayfs_support == '' || inputs.add_overlayfs_support }}
-      add_kpm: ${{ inputs.add_kpm }}
-      sukisu_commit: ${{ inputs.sukisu_commit }}
+      add_susfs: true
+      add_zeromount: true
+      add_zram: true
+      add_bbg: true
+      add_overlayfs_support: true
+      add_kpm: false
+      sukisu_commit: ''
       device_codename: ${{ needs.resolve.outputs.device_codename }}
