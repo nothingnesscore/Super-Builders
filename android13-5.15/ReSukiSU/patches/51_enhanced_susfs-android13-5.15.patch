@@ -1,10 +1,10 @@
+diff --git a/fs/Kconfig b/fs/Kconfig
+index 1111111..2222222 100644
 --- a/fs/Kconfig
 +++ b/fs/Kconfig
-@@ -388,3 +388,17 @@
- 	bool
+@@ -370,3 +370,17 @@ config KSU_SUSFS
+ 	  susfs is a subsystem to hide various root and modification artifacts.
  
- endmenu
-+
 +config KSU_SUSFS_SUS_KSTAT_REDIRECT
 +	bool "Enable to redirect kstat for virtual paths"
 +	depends on KSU_SUSFS && KSU_SUSFS_SUS_KSTAT
@@ -18,44 +18,55 @@
 +	default y
 +	help
 +	  Filter out confusable or zero-width unicode characters in filenames.
++
+ endif # KSU_SUSFS
+diff --git a/fs/namei.c b/fs/namei.c
+index 1111111..2222222 100644
+--- a/fs/namei.c
++++ b/fs/namei.c
+@@ -2499,6 +2499,11 @@ int filename_lookup(int dfd, struct filename *name, unsigned flags,
+ 	int retval;
+ 	struct nameidata nd;
+ 	if (IS_ERR(name))
+ 		return PTR_ERR(name);
++#ifdef CONFIG_KSU_SUSFS_UNICODE_FILTER
++	if (unlikely(name && susfs_check_unicode_bypass(name->name)))
++		return -ENOENT;
++#endif
+ 	set_nameidata(&nd, dfd, name, root);
+ 	retval = path_lookupat(&nd, flags | LOOKUP_RCU, path);
+diff --git a/fs/stat.c b/fs/stat.c
+index 1111111..2222222 100644
 --- a/fs/stat.c
 +++ b/fs/stat.c
-@@ -255,7 +255,11 @@
-  *
-  * 0 will be returned on success, and a -ve error code if unsuccessful.
-  */
--static int vfs_statx(int dfd, struct filename *filename, int flags,
-+static #ifdef CONFIG_KSU_SUSFS_SUS_KSTAT_REDIRECT
-+extern bool susfs_is_sus_kstat_redirect(struct dentry *dentry, struct kstat *stat);
-+#endif
-+
-+int vfs_statx(int dfd, struct filename *filename, int flags,
- 	      struct kstat *stat, u32 request_mask)
- {
- 	struct path path;
-@@ -282,6 +286,11 @@
- 	error = filename_lookup(dfd, filename, lookup_flags, &path, NULL);
- 	if (error)
- 		goto out;
+@@ -234,6 +234,11 @@ static int vfs_statx(int dfd, struct filename *filename, int flags,
+ 
+ 	error = vfs_getattr(&path, stat, request_mask, flags);
 +#ifdef CONFIG_KSU_SUSFS_SUS_KSTAT_REDIRECT
-+	if (unlikely(susfs_is_sus_kstat_redirect(path.dentry, stat))) {
-+		goto out;
++	if (likely(!error)) {
++		susfs_is_sus_kstat_redirect(path.dentry, stat);
 +	}
 +#endif
  
- 	error = vfs_getattr(&path, stat, request_mask, flags);
- 
+ 	stat->mnt_id = real_mount(path.mnt)->mnt_id;
+ 	stat->result_mask |= STATX_MNT_ID;
+diff --git a/fs/susfs.c b/fs/susfs.c
+index 1111111..2222222 100644
 --- a/fs/susfs.c
 +++ b/fs/susfs.c
-@@ -1,3 +1,4 @@
+@@ -8,6 +8,8 @@
+ #include <linux/list.h>
+ #include <linux/init_task.h>
+ #include <linux/spinlock.h>
 +#include <linux/hashtable.h>
++#include <linux/namei.h>
+ #include <linux/stat.h>
+ #include <linux/uaccess.h>
  #include <linux/version.h>
- #include <linux/cred.h>
- #include <linux/fs.h>
-@@ -1466,3 +1467,130 @@
- /* No module exit is needed becuase it should never be a loadable kernel module */
- //void __init susfs_exit(void)
- 
+@@ -29,6 +31,141 @@
+ #define SUSFS_LOGI(fmt, ...) 
+ #define SUSFS_LOGE(fmt, ...) 
+ #endif
 +
 +#ifdef CONFIG_KSU_SUSFS_UNICODE_FILTER
 +static bool has_suspicious_unicode(const char *path, long len)
@@ -183,12 +194,14 @@
 +	return false;
 +}
 +#endif
+diff --git a/include/linux/susfs.h b/include/linux/susfs.h
+index 1111111..2222222 100644
 --- a/include/linux/susfs.h
 +++ b/include/linux/susfs.h
-@@ -73,6 +73,25 @@
- #define KSTAT_SPOOF_BLOCKS (1 << 10)
- #define KSTAT_SPOOF_BLKSIZE (1 << 11)
- 
+@@ -56,6 +56,25 @@ struct st_susfs_sus_mount {
+ 	int                                     err;
+ };
+ #endif
 +
 +struct st_susfs_sus_kstat_redirect {
 +	char                                    virtual_pathname[SUSFS_MAX_LEN_PATHNAME];
@@ -208,14 +221,12 @@
 +	int                                     err;
 +};
 +
+ /* sus_kstat */
+ #ifdef CONFIG_KSU_SUSFS_SUS_KSTAT
  struct st_susfs_sus_kstat {
- 	int                                     is_statically;
- 	unsigned long                           target_ino;
-@@ -239,3 +258,11 @@
- void susfs_init(void);
- 
+@@ -190,6 +209,14 @@ int susfs_spoof_cmdline_or_bootconfig(char *new_cmdline);
  #endif
-+
+ 
 +#ifdef CONFIG_KSU_SUSFS_SUS_KSTAT_REDIRECT
 +int susfs_add_sus_kstat_redirect(void __user *user_arg);
 +bool susfs_is_sus_kstat_redirect(struct dentry *dentry, struct kstat *stat);
@@ -223,9 +234,13 @@
 +#ifdef CONFIG_KSU_SUSFS_UNICODE_FILTER
 +bool susfs_check_unicode_bypass(const char *pathname);
 +#endif
++
+ #endif /* #ifndef LINUX_SUSFS_H */
+diff --git a/include/linux/susfs_def.h b/include/linux/susfs_def.h
+index 1111111..2222222 100644
 --- a/include/linux/susfs_def.h
 +++ b/include/linux/susfs_def.h
-@@ -19,6 +19,7 @@
+@@ -18,6 +18,7 @@
  #define CMD_SUSFS_ADD_SUS_KSTAT 0x55570
  #define CMD_SUSFS_UPDATE_SUS_KSTAT 0x55571
  #define CMD_SUSFS_ADD_SUS_KSTAT_STATICALLY 0x55572
@@ -233,8 +248,8 @@
  #define CMD_SUSFS_ADD_TRY_UMOUNT 0x55580 /* deprecated */
  #define CMD_SUSFS_SET_UNAME 0x55590
  #define CMD_SUSFS_ENABLE_LOG 0x555a0
-@@ -64,6 +65,8 @@
- #define AS_FLAGS_SUS_MOUNT 34
+@@ -60,6 +61,8 @@
+ #define AS_FLAGS_SUS_PATH 34
  #define AS_FLAGS_SUS_KSTAT 35
  #define AS_FLAGS_OPEN_REDIRECT 36
 +#define AS_FLAGS_SUS_KSTAT_REDIRECT 37
@@ -242,10 +257,13 @@
  #define AS_FLAGS_SUS_MAP 39
  
  #define ND_STATE_LOOKUP_LAST 32
-@@ -150,3 +153,12 @@
- 		unlikely(test_bit(AS_FLAGS_OPEN_REDIRECT, &inode->i_mapping->flags)) && \
- 		susfs_is_current_proc_umounted_app()
- #endif // #ifndef KSU_SUSFS_DEF_H
+@@ -75,4 +78,13 @@ static inline void susfs_set_current_proc_umounted(void) {
+ 	set_ti_thread_flag(&current->thread_info, TIF_PROC_UMOUNTED);
+ }
+ 
++static inline bool susfs_is_current_proc_umounted_app(void) {
++	return test_ti_thread_flag(&current->thread_info, TIF_PROC_UMOUNTED);
++}
 +
 +#ifdef CONFIG_ZEROMOUNT
 +extern bool zeromount_is_uid_blocked(uid_t uid);
@@ -255,3 +273,4 @@
 +#else
 +static inline bool susfs_is_uid_zeromount_excluded(uid_t uid) { return false; }
 +#endif
++

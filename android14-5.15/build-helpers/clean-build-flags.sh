@@ -18,7 +18,7 @@ if [ -f "build/build.sh" ]; then
 else
   sed -i "/stable_scmversion_cmd/s/-maybe-dirty//g" ./build/kernel/kleaf/impl/stamp.bzl
   sed -i 's/-dirty//' ./common/scripts/setlocalversion
-  rm -rf ./common/android/abi_gki_protected_exports_*
+  for exp in ./common/android/abi_gki_protected_exports_*; do [ -f "$exp" ] && : > "$exp"; done || true
   perl -pi -e 's/^\s*"protected_exports_list"\s*:\s*"android\/abi_gki_protected_exports_aarch64",\s*$//;' ./common/BUILD.bazel
 fi
 
