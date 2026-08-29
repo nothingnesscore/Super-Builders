@@ -402,9 +402,9 @@ jobs:
       - name: Build variant matrix
         id: variants
         env:
-          VARIANT: ${{ inputs.ksu_variant != '' && inputs.ksu_variant || 'All' }}
+          VARIANT: ${{ inputs.ksu_variant }}
         run: |
-          if [ "$VARIANT" = "All" ]; then
+          if [ "$VARIANT" = "All" ] || [ -z "$VARIANT" ]; then
             echo 'matrix=["SukiSU","ReSukiSU","KernelSU-Next","WKSU"]' >> "$GITHUB_OUTPUT"
           else
             echo "matrix=[\"$VARIANT\"]" >> "$GITHUB_OUTPUT"
