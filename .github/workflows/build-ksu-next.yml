@@ -464,82 +464,24 @@ jobs:
 
     - name: Prepare AnyKernel3
       run: |
-        if [ -f "$KERNEL_ROOT/out/${ANDROID_VER}-${KERNEL_VER}/dist/Image" ]; then
-          cp "$KERNEL_ROOT/out/${ANDROID_VER}-${KERNEL_VER}/dist/Image" "$ANYKERNEL3/Image"
-        elif [ -f "$KERNEL_ROOT/bazel-bin/common/kernel_aarch64/Image" ]; then
-          cp "$KERNEL_ROOT/bazel-bin/common/kernel_aarch64/Image" "$ANYKERNEL3/Image"
+        FOUND_IMG=""
+        for CANDIDATE in \
+          "$KERNEL_ROOT/out/${ANDROID_VER}-${KERNEL_VER}/dist/Image" \
+          "$KERNEL_ROOT/out/kernel_aarch64/dist/Image" \
+          "$KERNEL_ROOT/bazel-bin/common/kernel_aarch64/Image" \
+          "$KERNEL_ROOT/out/dist/Image" \
+          $(find "$KERNEL_ROOT" -name "Image" -type f 2>/dev/null | head -1); do
+          if [ -f "$CANDIDATE" ]; then
+            FOUND_IMG="$CANDIDATE"
+            break
+          fi
+        done
+
+        if [ -n "$FOUND_IMG" ]; then
+          echo "Found Image at $FOUND_IMG"
+          cp "$FOUND_IMG" "$ANYKERNEL3/Image"
         else
           echo "FATAL: Image not found"
-          find "$KERNEL_ROOT" -name "Image" -type f 2>/dev/null
           exit 1
         fi
 
-    - name: Scan Patch Rejects
-      if: always()
-      run: |
-        REJECTS_DIR="$GITHUB_WORKSPACE/patch-rejects"
-        mkdir -p "$REJECTS_DIR"
-        mapfile -t REJS < <(find "$KERNEL_ROOT" -type f -name '*.rej')
-        REJ_COUNT=${#REJS[@]}
-        echo "REJ_COUNT=$REJ_COUNT" >> "$GITHUB_ENV"
-        if [ "$REJ_COUNT" -gt 0 ]; then
-          for REJ in "${REJS[@]}"; do
-            REL="${REJ#"$KERNEL_ROOT"/}"
-            DEST="$REJECTS_DIR/$REL"
-            mkdir -p "$(dirname "$DEST")"
-            cp "$REJ" "$DEST"
-            ORIG="${REJ%.rej}"
-            [ -f "$ORIG" ] && cp "$ORIG" "$REJECTS_DIR/${REL%.rej}"
-          done
-        fi
-
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.FILE_NAME }}-AnyKernel3
-        path: ./AnyKernel3/**
-        if-no-files-found: error
-        compression-level: 9
-
-    - name: Upload Rejects
-      if: always() && env.REJ_COUNT > 0
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.FILE_NAME }}-Rejects
-        path: patch-rejects/
-        if-no-files-found: ignore
-        compression-level: 9
-
-    - name: Job Summary
-      if: always()
-      env:
-        ADD_SUSFS: ${{ inputs.add_susfs }}
-        ADD_ZEROMOUNT: ${{ inputs.add_zeromount }}
-        ADD_ZRAM: ${{ inputs.add_zram }}
-        ADD_BBG: ${{ inputs.add_bbg }}
-        ADD_OVERLAYFS: ${{ inputs.add_overlayfs_support }}
-        ADD_KPM: ${{ inputs.add_kpm }}
-      run: |
-        S() { [[ "$1" == "true" ]] && echo "Enabled" || echo "Disabled"; }
-        {
-          echo "## KernelSU-Next | ${KERNEL_VER}.${SUBLEVEL}"
-          echo ""
-          echo "| Feature | Status |"
-          echo "|---------|--------|"
-          echo "| **Kernel** | ${KERNEL_VER}.${SUBLEVEL} |"
-          echo "| **Android** | ${ANDROID_VER} |"
-          echo "| **OS Patch Level** | ${OS_PATCH} |"
-          echo "| **Enhanced SUSFS** | $(S "$ADD_SUSFS") |"
-          echo "| **ZeroMount** | $(S "$ADD_ZEROMOUNT") |"
-          echo "| **ZRAM (LZ4K/LZ4KD)** | $(S "$ADD_ZRAM") |"
-          echo "| **LZ4 v1.10.0** | $(S "$ADD_ZRAM") |"
-          echo "| **Overlayfs Support** | $(S "$ADD_OVERLAYFS") |"
-          echo "| **Unicode Filter** | Enabled |"
-          echo "| **Baseband Guard** | $(S "$ADD_BBG") |"
-          echo "| **KPM** | $(S "$ADD_KPM") |"
-          echo "| **Device Profile** | ${IDENTITY_STATUS:-Generic} |"
-          echo "| **Rejects** | ${REJ_COUNT:-0} |"
-          echo "| **Artifact** | ${FILE_NAME} |"
-        } >> "$GITHUB_STEP_SUMMARY"
-        REPORT="$GITHUB_WORKSPACE/$VERSION_DIR/build-helpers/report-config.sh"
-        [ -f "$REPORT" ] && bash "$REPORT" "$KERNEL_ROOT" "$ANDROID_VER" "$KERNEL_VER" || true

@@ -497,112 +497,24 @@ jobs:
 
     - name: Prepare AnyKernel3
       run: |
-        ANYKERNEL="$GITHUB_WORKSPACE/AnyKernel3"
-        IMAGE="$SYNC_DIR/$IMAGE_PATH"
+        FOUND_IMG=""
+        for CANDIDATE in \
+          "$KERNEL_ROOT/out/${ANDROID_VER}-${KERNEL_VER}/dist/Image" \
+          "$KERNEL_ROOT/out/kernel_aarch64/dist/Image" \
+          "$KERNEL_ROOT/bazel-bin/common/kernel_aarch64/Image" \
+          "$KERNEL_ROOT/out/dist/Image" \
+          $(find "$KERNEL_ROOT" -name "Image" -type f 2>/dev/null | head -1); do
+          if [ -f "$CANDIDATE" ]; then
+            FOUND_IMG="$CANDIDATE"
+            break
+          fi
+        done
 
-        if [ ! -f "$IMAGE" ]; then
-          echo "::warning::Image not at expected path ($IMAGE_PATH), searching..."
-          IMAGE=$(find "$SYNC_DIR" -name "Image" -type f \
-            \( -path "*/arch/arm64/boot/*" -o -path "*/dist/*" \) 2>/dev/null | head -1)
-        fi
-
-        if [ -z "$IMAGE" ] || [ ! -f "$IMAGE" ]; then
-          echo "FATAL: Kernel Image not found"
-          find "$SYNC_DIR" -name "Image" -type f 2>/dev/null || true
+        if [ -n "$FOUND_IMG" ]; then
+          echo "Found Image at $FOUND_IMG"
+          cp "$FOUND_IMG" "$ANYKERNEL3/Image"
+        else
+          echo "FATAL: Image not found"
           exit 1
         fi
 
-        cp "$IMAGE" "$ANYKERNEL/Image"
-        echo "Image: $IMAGE ($(stat -c%s "$IMAGE") bytes)"
-
-        DTB_COUNT=0
-        for dts_dir in "$SYNC_DIR/arch/arm64/boot/dts" "$KERNEL_COMMON/arch/arm64/boot/dts"; do
-          [ -d "$dts_dir" ] || continue
-          while IFS= read -r dtb; do
-            cp "$dtb" "$ANYKERNEL/"
-            DTB_COUNT=$((DTB_COUNT + 1))
-          done < <(find "$dts_dir" -name "*.dtb" -type f 2>/dev/null)
-        done
-        [ "$DTB_COUNT" -gt 0 ] && echo "Collected $DTB_COUNT DTBs"
-
-        if [ -n "$EXTRA_ARTIFACTS" ]; then
-          IFS=',' read -ra EXTRAS <<< "$EXTRA_ARTIFACTS"
-          DIST_DIR=$(dirname "$IMAGE")
-          for EXTRA in "${EXTRAS[@]}"; do
-            EXTRA_PATH="$DIST_DIR/$EXTRA"
-            [ ! -f "$EXTRA_PATH" ] && EXTRA_PATH="$DIST_DIR/${EXTRA%.img}.erofs.img"
-            if [ -f "$EXTRA_PATH" ]; then
-              cp "$EXTRA_PATH" "$ANYKERNEL/$EXTRA"
-              echo "Extra: $EXTRA ($(stat -c%s "$EXTRA_PATH") bytes)"
-            else
-              echo "Extra artifact '$EXTRA' not found in $DIST_DIR"
-            fi
-          done
-        fi
-
-    - name: Scan Patch Rejects
-      if: always()
-      run: |
-        REJECTS_DIR="$GITHUB_WORKSPACE/patch-rejects"
-        mkdir -p "$REJECTS_DIR"
-        mapfile -t REJS < <(find "$SYNC_DIR" -type f -name '*.rej' 2>/dev/null)
-        REJ_COUNT=${#REJS[@]}
-        echo "REJ_COUNT=$REJ_COUNT" >> "$GITHUB_ENV"
-        if [ "$REJ_COUNT" -gt 0 ]; then
-          for REJ in "${REJS[@]}"; do
-            REL="${REJ#"$SYNC_DIR"/}"
-            DEST="$REJECTS_DIR/$REL"
-            mkdir -p "$(dirname "$DEST")"
-            cp "$REJ" "$DEST"
-            ORIG="${REJ%.rej}"
-            [ -f "$ORIG" ] && cp "$ORIG" "$REJECTS_DIR/${REL%.rej}"
-          done
-        fi
-
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.FILE_NAME }}-AnyKernel3
-        path: ./AnyKernel3/**
-        if-no-files-found: error
-        compression-level: 9
-
-    - name: Upload Rejects
-      if: always() && env.REJ_COUNT > 0
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.FILE_NAME }}-Rejects
-        path: patch-rejects/
-        if-no-files-found: ignore
-        compression-level: 9
-
-    - name: Job Summary
-      if: always()
-      env:
-        ADD_SUSFS: ${{ inputs.add_susfs }}
-        ADD_ZEROMOUNT: ${{ inputs.add_zeromount }}
-        ADD_KPM: ${{ inputs.add_kpm }}
-        ADD_ZRAM: ${{ inputs.add_zram }}
-        LTO_MODE: ${{ inputs.lto_mode }}
-      run: |
-        S() { [[ "$1" == "true" ]] && echo "Enabled" || echo "Disabled"; }
-        {
-          echo "## WKSU | ${DEVICE_NAME} — ${KERNEL_VER}.${SUBLEVEL}"
-          echo ""
-          echo "| Feature | Status |"
-          echo "|---------|--------|"
-          echo "| **Device** | ${DEVICE_NAME} (${DEVICE_KEY}) |"
-          echo "| **SoC** | ${SOC} (${CODENAME}) |"
-          echo "| **Kernel** | ${KERNEL_VER}.${SUBLEVEL} |"
-          echo "| **Android** | ${ANDROID_VER} |"
-          echo "| **Source** | ${SOURCE_REPO} @ ${SOURCE_BRANCH} |"
-          echo "| **LTO** | ${LTO_MODE} |"
-          echo "| **Enhanced SUSFS** | $(S "$ADD_SUSFS") |"
-          echo "| **ZeroMount** | $(S "$ADD_ZEROMOUNT") |"
-          echo "| **ZRAM (LZ4K/LZ4KD)** | $(S "$ADD_ZRAM") |"
-          echo "| **KPM** | $(S "$ADD_KPM") |"
-          echo "| **WiFi Fix** | $(S "$WIFI_FIX") |"
-          echo "| **Samsung Security** | Disabled |"
-          echo "| **Rejects** | ${REJ_COUNT:-0} |"
-          echo "| **Artifact** | ${FILE_NAME} |"
-        } >> "$GITHUB_STEP_SUMMARY"
