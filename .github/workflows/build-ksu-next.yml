@@ -416,23 +416,34 @@ jobs:
         BUILD_RC=0
         LTO_MODE=thin
         [[ "$ANDROID_VER" == android16* || "$KERNEL_VER" == "6.12" ]] && LTO_MODE=none
+
+        # Link against system libc for host tools if needed
+        if [ -f common/tools/bpf/resolve_btfids/Makefile ]; then
+          echo 'override KBUILD_HOSTLDFLAGS += --sysroot=/' >> common/tools/bpf/resolve_btfids/Makefile
+          echo 'override LDFLAGS += --sysroot=/' >> common/tools/bpf/resolve_btfids/Makefile
+        fi
+
         if [ -f "build/build.sh" ]; then
           KMI_SYMBOL_LIST_STRICT_MODE=0 HOSTLD=/usr/bin/ld.lld GKI_DEFCONFIG_FRAGMENT="$DEFCONFIG_FRAGMENT" LTO=$LTO_MODE BUILD_CONFIG=common/build.config.gki.aarch64 build/build.sh || BUILD_RC=$?
+        elif [ -f "build/kernel/build.sh" ]; then
+          KMI_SYMBOL_LIST_STRICT_MODE=0 HOSTLD=/usr/bin/ld.lld GKI_DEFCONFIG_FRAGMENT="$DEFCONFIG_FRAGMENT" LTO=$LTO_MODE BUILD_CONFIG=common/build.config.gki.aarch64 build/kernel/build.sh || BUILD_RC=$?
+        elif [ -x "tools/bazel" ]; then
+          tools/bazel build --config=fast --lto=$LTO_MODE --verbose_failures //common:kernel_aarch64_dist || \
+          tools/bazel build --config=fast --lto=$LTO_MODE --verbose_failures //common:kernel_aarch64 //common:kernel_aarch64_modules || BUILD_RC=$?
         else
-          # Prebuilt clang sysroot lacks glibc 2.39 C23 symbols — link against system libc
-          if [ -f common/tools/bpf/resolve_btfids/Makefile ]; then
-            echo 'override KBUILD_HOSTLDFLAGS += --sysroot=/' >> common/tools/bpf/resolve_btfids/Makefile
-            echo 'override LDFLAGS += --sysroot=/' >> common/tools/bpf/resolve_btfids/Makefile
-          fi
-          tools/bazel build --config=fast --lto=$LTO_MODE --verbose_failures //common:kernel_aarch64_dist || BUILD_RC=$?
+          echo "FATAL: No supported build runner found!"
+          exit 1
         fi
+
         if [ "$BUILD_RC" -ne 0 ]; then
           if find . -name "Image" -type f 2>/dev/null | grep -q .; then
-            echo "::warning::Build exited $BUILD_RC but Image exists (likely depmod failure)"
+            echo "::warning::Build exited $BUILD_RC but Image exists (likely depmod/ABI warning)"
           else
             exit "$BUILD_RC"
           fi
         fi
+
+
 
     - name: Dump Build Errors
       if: failure()
