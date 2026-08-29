@@ -326,7 +326,9 @@ jobs:
         else
           TARGET_FILE="$KERNEL_ROOT/common/kernel/module.c"
         fi
-        sed -i '/bad_version:/{:a;n;/return 0;/{s/return 0;/return 1;/;b};ba}' "$TARGET_FILE"    - name: Set Stock Build Identity
+        sed -i '/bad_version:/{:a;n;/return 0;/{s/return 0;/return 1;/;b};ba}' "$TARGET_FILE"
+
+    - name: Set Stock Build Identity
       working-directory: ${{ env.KERNEL_ROOT }}/common
       env:
         INPUT_CODENAME: ${{ inputs.device_codename }}
