@@ -97,7 +97,7 @@ jobs:
 
   build:
     needs: [download-dependencies]
-    name: "BBK WKSU — ${{ inputs.device }}"
+    name: "BBK WKSU â€” ${{ inputs.device }}"
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
@@ -382,7 +382,7 @@ jobs:
         if [ -f "$HMBIRD_SCRIPT" ]; then
           bash "$HMBIRD_SCRIPT" "$SYNC_DIR/kernel_platform" || true
         else
-          echo "::warning::HMBird enabled but hmbird-setup.sh not found — skipping"
+          echo "::warning::HMBird enabled but hmbird-setup.sh not found â€” skipping"
         fi
 
     - name: Setup Baseband Guard
@@ -417,7 +417,7 @@ jobs:
           bash "$HELPERS/assemble-defconfig.sh" "$FRAGMENT" "$DEFCONFIG_FRAGMENT" "$DEFCONFIG" $ASSEMBLE_FLAGS
         fi
 
-        # Wild_KSU Kconfig defaults KSU_SUSFS=y — explicitly disable when not requested
+        # Wild_KSU Kconfig defaults KSU_SUSFS=y â€” explicitly disable when not requested
         [[ "$ADD_SUSFS" != "true" ]] && echo "# CONFIG_KSU_SUSFS is not set" >> "$DEFCONFIG"
 
     - name: Build Kernel
@@ -496,51 +496,120 @@ jobs:
     - name: Dump Build Errors
       if: failure()
       run: |
-        echo "## ❌ Build Failure Diagnostics" >> "$GITHUB_STEP_SUMMARY"
-        
-        # 1. Check Bazel command.log and last build logs
-        for BLOG in $(find "$HOME/.cache/bazel" "$KERNEL_ROOT" -name 'command.log' -o -name 'build.log' -o -name 'last_build_infos.json' 2>/dev/null | head -10); do
-          echo "::group::$(basename "$BLOG")"
-          tail -120 "$BLOG"
-          echo "::endgroup::"
-          echo "### 📄 $(basename "$BLOG")" >> "$GITHUB_STEP_SUMMARY"
-          echo '```text' >> "$GITHUB_STEP_SUMMARY"
-          tail -50 "$BLOG" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-        done
-
-        # 2. Check kernel log files
-        for LOG in $(find "$KERNEL_ROOT" -name '*.log' -newer "$KERNEL_ROOT/common" -type f 2>/dev/null | head -10); do
+        echo "::group::Build directory structure"
+        ls -la "$SYNC_DIR/kernel_platform/" 2>/dev/null || true
+        ls -la "$SYNC_DIR/kernel_platform/oplus/build/" 2>/dev/null || true
+        echo "::endgroup::"
+        for LOG in $(find "$SYNC_DIR" -name '*.log' -newer "$SYNC_DIR/.repo" -type f 2>/dev/null | head -5); do
           echo "::group::$(basename "$LOG")"
-          tail -120 "$LOG"
+          tail -80 "$LOG"
           echo "::endgroup::"
-          echo "### 📄 $(basename "$LOG")" >> "$GITHUB_STEP_SUMMARY"
-          echo '```text' >> "$GITHUB_STEP_SUMMARY"
-          tail -50 "$LOG" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
         done
-
 
     - name: Prepare AnyKernel3
       run: |
-        FOUND_IMG=""
+        ANYKERNEL="$GITHUB_WORKSPACE/AnyKernel3"
+        CPUD="${CODENAME:-}"
+        IMAGE=""
+
         for CANDIDATE in \
-          "$KERNEL_ROOT/out/${ANDROID_VER}-${KERNEL_VER}/dist/Image" \
-          "$KERNEL_ROOT/out/kernel_aarch64/dist/Image" \
-          "$KERNEL_ROOT/bazel-bin/common/kernel_aarch64/Image" \
-          "$KERNEL_ROOT/out/dist/Image" \
-          $(find "$KERNEL_ROOT" -name "Image" -type f 2>/dev/null | head -1); do
+          "$SYNC_DIR/out/msm-kernel-${CPUD}-${BUILD_METHOD}/dist/Image" \
+          "$SYNC_DIR/bazel-out/k8-fastbuild/bin/msm-kernel/${CPUD}_gki_kbuild_mixed_tree/Image" \
+          "$SYNC_DIR/out/msm-${CPUD}-${CPUD}-${BUILD_METHOD}/dist/Image" \
+          "$SYNC_DIR/out/msm-kernel-${CPUD}-${BUILD_METHOD}/gki_kernel/common/arch/arm64/boot/Image" \
+          "$KERNEL_COMMON/out/arch/arm64/boot/Image"; do
           if [ -f "$CANDIDATE" ]; then
-            FOUND_IMG="$CANDIDATE"
+            IMAGE="$CANDIDATE"
             break
           fi
         done
 
-        if [ -n "$FOUND_IMG" ]; then
-          echo "Found Image at $FOUND_IMG"
-          cp "$FOUND_IMG" "$ANYKERNEL3/Image"
-        else
-          echo "FATAL: Image not found"
+        if [ -z "$IMAGE" ]; then
+          echo "FATAL: Kernel Image not found in any known location"
+          find "$SYNC_DIR" -name "Image" -type f 2>/dev/null || true
           exit 1
         fi
 
+        cp "$IMAGE" "$ANYKERNEL/Image"
+        echo "Image: $IMAGE ($(stat -c%s "$IMAGE") bytes)"
+
+        if [ -n "$EXTRA_ARTIFACTS" ]; then
+          IFS=',' read -ra EXTRAS <<< "$EXTRA_ARTIFACTS"
+          DIST_DIR=$(dirname "$IMAGE")
+          for EXTRA in "${EXTRAS[@]}"; do
+            EXTRA_PATH="$DIST_DIR/$EXTRA"
+            [ ! -f "$EXTRA_PATH" ] && EXTRA_PATH="$DIST_DIR/${EXTRA%.img}.erofs.img"
+            if [ -f "$EXTRA_PATH" ]; then
+              cp "$EXTRA_PATH" "$ANYKERNEL/$EXTRA"
+              echo "Extra: $EXTRA ($(stat -c%s "$EXTRA_PATH") bytes)"
+            else
+              echo "Extra artifact '$EXTRA' not found in $DIST_DIR"
+            fi
+          done
+        fi
+
+    - name: Scan Patch Rejects
+      if: always()
+      run: |
+        REJECTS_DIR="$GITHUB_WORKSPACE/patch-rejects"
+        mkdir -p "$REJECTS_DIR"
+        mapfile -t REJS < <(find "$SYNC_DIR" -type f -name '*.rej' 2>/dev/null)
+        REJ_COUNT=${#REJS[@]}
+        echo "REJ_COUNT=$REJ_COUNT" >> "$GITHUB_ENV"
+        if [ "$REJ_COUNT" -gt 0 ]; then
+          for REJ in "${REJS[@]}"; do
+            REL="${REJ#"$SYNC_DIR"/}"
+            DEST="$REJECTS_DIR/$REL"
+            mkdir -p "$(dirname "$DEST")"
+            cp "$REJ" "$DEST"
+            ORIG="${REJ%.rej}"
+            [ -f "$ORIG" ] && cp "$ORIG" "$REJECTS_DIR/${REL%.rej}"
+          done
+        fi
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.FILE_NAME }}-AnyKernel3
+        path: ./AnyKernel3/**
+        if-no-files-found: error
+        compression-level: 9
+
+    - name: Upload Rejects
+      if: always() && env.REJ_COUNT > 0
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.FILE_NAME }}-Rejects
+        path: patch-rejects/
+        if-no-files-found: ignore
+        compression-level: 9
+
+    - name: Job Summary
+      if: always()
+      env:
+        ADD_SUSFS: ${{ inputs.add_susfs }}
+        ADD_ZEROMOUNT: ${{ inputs.add_zeromount }}
+        ADD_KPM: ${{ inputs.add_kpm }}
+        ADD_ZRAM: ${{ inputs.add_zram }}
+        LTO_MODE: ${{ inputs.lto_mode }}
+      run: |
+        [[ "${LTO_OVERRIDE:-}" == "none" ]] && LTO_MODE=none
+        S() { [[ "$1" == "true" ]] && echo "Enabled" || echo "Disabled"; }
+        {
+          echo "## WKSU | ${DEVICE_NAME} â€” ${KERNEL_VER}.${SUBLEVEL}"
+          echo ""
+          echo "| Feature | Status |"
+          echo "|---------|--------|"
+          echo "| **Device** | ${DEVICE_NAME} (${DEVICE_KEY}) |"
+          echo "| **SoC** | ${SOC} (${CODENAME}) |"
+          echo "| **Kernel** | ${KERNEL_VER}.${SUBLEVEL} |"
+          echo "| **Android** | ${ANDROID_VER} |"
+          echo "| **LTO** | ${LTO_MODE} |"
+          echo "| **Enhanced SUSFS** | $(S "$ADD_SUSFS") |"
+          echo "| **ZeroMount** | $(S "$ADD_ZEROMOUNT") |"
+          echo "| **ZRAM (LZ4K/LZ4KD)** | $(S "$ADD_ZRAM") |"
+          echo "| **KPM** | $(S "$ADD_KPM") |"
+          echo "| **HMBird** | $(S "$HMBIRD") |"
+          echo "| **Rejects** | ${REJ_COUNT:-0} |"
+          echo "| **Artifact** | ${FILE_NAME} |"
+        } >> "$GITHUB_STEP_SUMMARY"

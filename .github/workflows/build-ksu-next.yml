@@ -330,6 +330,12 @@ jobs:
         fi
         sed -i '/bad_version:/{:a;n;/return 0;/{s/return 0;/return 1;/;b};ba}' "$TARGET_FILE"
 
+    - name: Clean Build Flags
+      working-directory: ${{ env.KERNEL_ROOT }}
+      run: |
+        HELPERS="$GITHUB_WORKSPACE/$VERSION_DIR/build-helpers"
+        bash "$HELPERS/clean-build-flags.sh" . "$KERNEL_VER" "KernelSU-Next"
+
     - name: Set Stock Build Identity
       working-directory: ${{ env.KERNEL_ROOT }}/common
       env:
@@ -367,7 +373,7 @@ jobs:
         STOCK_BUILD_HOST=$(jq -r ".devices.${DEVICE_CODENAME}.stock_kernel.build_host" "$PROFILE_FILE")
         STOCK_COMPILER=$(jq -r ".devices.${DEVICE_CODENAME}.stock_kernel.compiler_info // empty" "$PROFILE_FILE")
 
-        # 5.10–6.1: Makefile prepends KERNELVERSION, setlocalversion outputs suffix only
+        # 5.10â€“6.1: Makefile prepends KERNELVERSION, setlocalversion outputs suffix only
         # 6.6+: Makefile delegates entirely to setlocalversion, must output full version
         MAJOR=${KERNEL_VER%%.*}
         MINOR=${KERNEL_VER#*.}
@@ -401,98 +407,117 @@ jobs:
           echo "IDENTITY_STATUS=Applied ($DEVICE_CODENAME)"
         } >> "$GITHUB_ENV"
 
-
-    - name: Clean Build Flags
-      working-directory: ${{ env.KERNEL_ROOT }}
-      run: |
-        HELPERS="$GITHUB_WORKSPACE/$VERSION_DIR/build-helpers"
-        bash "$HELPERS/clean-build-flags.sh" . "$KERNEL_VER" "KernelSU-Next"
-
-
-
     - name: Build Kernel
       working-directory: ${{ env.KERNEL_ROOT }}
       run: |
         BUILD_RC=0
         LTO_MODE=thin
         [[ "$ANDROID_VER" == android16* || "$KERNEL_VER" == "6.12" ]] && LTO_MODE=none
-
-        # Link against system libc for host tools if needed
-        if [ -f common/tools/bpf/resolve_btfids/Makefile ]; then
-          echo 'override KBUILD_HOSTLDFLAGS += --sysroot=/' >> common/tools/bpf/resolve_btfids/Makefile
-          echo 'override LDFLAGS += --sysroot=/' >> common/tools/bpf/resolve_btfids/Makefile
-        fi
-
         if [ -f "build/build.sh" ]; then
           KMI_SYMBOL_LIST_STRICT_MODE=0 HOSTLD=/usr/bin/ld.lld GKI_DEFCONFIG_FRAGMENT="$DEFCONFIG_FRAGMENT" LTO=$LTO_MODE BUILD_CONFIG=common/build.config.gki.aarch64 build/build.sh || BUILD_RC=$?
-        elif [ -f "build/kernel/build.sh" ]; then
-          KMI_SYMBOL_LIST_STRICT_MODE=0 HOSTLD=/usr/bin/ld.lld GKI_DEFCONFIG_FRAGMENT="$DEFCONFIG_FRAGMENT" LTO=$LTO_MODE BUILD_CONFIG=common/build.config.gki.aarch64 build/kernel/build.sh || BUILD_RC=$?
-        elif [ -x "tools/bazel" ]; then
-          tools/bazel build --config=fast --lto=$LTO_MODE --verbose_failures //common:kernel_aarch64_dist || \
-          tools/bazel build --config=fast --lto=$LTO_MODE --verbose_failures //common:kernel_aarch64 //common:kernel_aarch64_modules || BUILD_RC=$?
         else
-          echo "FATAL: No supported build runner found!"
-          exit 1
+          # Prebuilt clang sysroot lacks glibc 2.39 C23 symbols â€” link against system libc
+          if [ -f common/tools/bpf/resolve_btfids/Makefile ]; then
+            echo 'override KBUILD_HOSTLDFLAGS += --sysroot=/' >> common/tools/bpf/resolve_btfids/Makefile
+            echo 'override LDFLAGS += --sysroot=/' >> common/tools/bpf/resolve_btfids/Makefile
+          fi
+          tools/bazel build --config=fast --lto=$LTO_MODE --defconfig_fragment=//common:arch/arm64/configs/sukisu_gki.fragment //common:kernel_aarch64_dist || BUILD_RC=$?
         fi
-
         if [ "$BUILD_RC" -ne 0 ]; then
           if find . -name "Image" -type f 2>/dev/null | grep -q .; then
-            echo "::warning::Build exited $BUILD_RC but Image exists (likely depmod/ABI warning)"
+            echo "::warning::Build exited $BUILD_RC but Image exists (likely depmod failure)"
           else
             exit "$BUILD_RC"
           fi
         fi
 
-
-
     - name: Dump Build Errors
       if: failure()
       run: |
-        echo "## ❌ Build Failure Diagnostics" >> "$GITHUB_STEP_SUMMARY"
-        
-        # 1. Check Bazel command.log and last build logs
-        for BLOG in $(find "$HOME/.cache/bazel" "$KERNEL_ROOT" -name 'command.log' -o -name 'build.log' -o -name 'last_build_infos.json' 2>/dev/null | head -10); do
-          echo "::group::$(basename "$BLOG")"
-          tail -120 "$BLOG"
-          echo "::endgroup::"
-          echo "### 📄 $(basename "$BLOG")" >> "$GITHUB_STEP_SUMMARY"
-          echo '```text' >> "$GITHUB_STEP_SUMMARY"
-          tail -50 "$BLOG" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-        done
-
-        # 2. Check kernel log files
-        for LOG in $(find "$KERNEL_ROOT" -name '*.log' -newer "$KERNEL_ROOT/common" -type f 2>/dev/null | head -10); do
+        for LOG in $(find "$KERNEL_ROOT" -name '*.log' -newer "$KERNEL_ROOT/common" -type f 2>/dev/null | head -5); do
           echo "::group::$(basename "$LOG")"
-          tail -120 "$LOG"
+          tail -80 "$LOG"
           echo "::endgroup::"
-          echo "### 📄 $(basename "$LOG")" >> "$GITHUB_STEP_SUMMARY"
-          echo '```text' >> "$GITHUB_STEP_SUMMARY"
-          tail -50 "$LOG" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
         done
-
 
     - name: Prepare AnyKernel3
       run: |
-        FOUND_IMG=""
-        for CANDIDATE in \
-          "$KERNEL_ROOT/out/${ANDROID_VER}-${KERNEL_VER}/dist/Image" \
-          "$KERNEL_ROOT/out/kernel_aarch64/dist/Image" \
-          "$KERNEL_ROOT/bazel-bin/common/kernel_aarch64/Image" \
-          "$KERNEL_ROOT/out/dist/Image" \
-          $(find "$KERNEL_ROOT" -name "Image" -type f 2>/dev/null | head -1); do
-          if [ -f "$CANDIDATE" ]; then
-            FOUND_IMG="$CANDIDATE"
-            break
-          fi
-        done
-
-        if [ -n "$FOUND_IMG" ]; then
-          echo "Found Image at $FOUND_IMG"
-          cp "$FOUND_IMG" "$ANYKERNEL3/Image"
+        if [ -f "$KERNEL_ROOT/out/${ANDROID_VER}-${KERNEL_VER}/dist/Image" ]; then
+          cp "$KERNEL_ROOT/out/${ANDROID_VER}-${KERNEL_VER}/dist/Image" "$ANYKERNEL3/Image"
+        elif [ -f "$KERNEL_ROOT/bazel-bin/common/kernel_aarch64/Image" ]; then
+          cp "$KERNEL_ROOT/bazel-bin/common/kernel_aarch64/Image" "$ANYKERNEL3/Image"
         else
           echo "FATAL: Image not found"
+          find "$KERNEL_ROOT" -name "Image" -type f 2>/dev/null
           exit 1
         fi
 
+    - name: Scan Patch Rejects
+      if: always()
+      run: |
+        REJECTS_DIR="$GITHUB_WORKSPACE/patch-rejects"
+        mkdir -p "$REJECTS_DIR"
+        mapfile -t REJS < <(find "$KERNEL_ROOT" -type f -name '*.rej')
+        REJ_COUNT=${#REJS[@]}
+        echo "REJ_COUNT=$REJ_COUNT" >> "$GITHUB_ENV"
+        if [ "$REJ_COUNT" -gt 0 ]; then
+          for REJ in "${REJS[@]}"; do
+            REL="${REJ#"$KERNEL_ROOT"/}"
+            DEST="$REJECTS_DIR/$REL"
+            mkdir -p "$(dirname "$DEST")"
+            cp "$REJ" "$DEST"
+            ORIG="${REJ%.rej}"
+            [ -f "$ORIG" ] && cp "$ORIG" "$REJECTS_DIR/${REL%.rej}"
+          done
+        fi
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.FILE_NAME }}-AnyKernel3
+        path: ./AnyKernel3/**
+        if-no-files-found: error
+        compression-level: 9
+
+    - name: Upload Rejects
+      if: always() && env.REJ_COUNT > 0
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.FILE_NAME }}-Rejects
+        path: patch-rejects/
+        if-no-files-found: ignore
+        compression-level: 9
+
+    - name: Job Summary
+      if: always()
+      env:
+        ADD_SUSFS: ${{ inputs.add_susfs }}
+        ADD_ZEROMOUNT: ${{ inputs.add_zeromount }}
+        ADD_ZRAM: ${{ inputs.add_zram }}
+        ADD_BBG: ${{ inputs.add_bbg }}
+        ADD_OVERLAYFS: ${{ inputs.add_overlayfs_support }}
+        ADD_KPM: ${{ inputs.add_kpm }}
+      run: |
+        S() { [[ "$1" == "true" ]] && echo "Enabled" || echo "Disabled"; }
+        {
+          echo "## KernelSU-Next | ${KERNEL_VER}.${SUBLEVEL}"
+          echo ""
+          echo "| Feature | Status |"
+          echo "|---------|--------|"
+          echo "| **Kernel** | ${KERNEL_VER}.${SUBLEVEL} |"
+          echo "| **Android** | ${ANDROID_VER} |"
+          echo "| **OS Patch Level** | ${OS_PATCH} |"
+          echo "| **Enhanced SUSFS** | $(S "$ADD_SUSFS") |"
+          echo "| **ZeroMount** | $(S "$ADD_ZEROMOUNT") |"
+          echo "| **ZRAM (LZ4K/LZ4KD)** | $(S "$ADD_ZRAM") |"
+          echo "| **LZ4 v1.10.0** | $(S "$ADD_ZRAM") |"
+          echo "| **Overlayfs Support** | $(S "$ADD_OVERLAYFS") |"
+          echo "| **Unicode Filter** | Enabled |"
+          echo "| **Baseband Guard** | $(S "$ADD_BBG") |"
+          echo "| **KPM** | $(S "$ADD_KPM") |"
+          echo "| **Device Profile** | ${IDENTITY_STATUS:-Generic} |"
+          echo "| **Rejects** | ${REJ_COUNT:-0} |"
+          echo "| **Artifact** | ${FILE_NAME} |"
+        } >> "$GITHUB_STEP_SUMMARY"
+        REPORT="$GITHUB_WORKSPACE/$VERSION_DIR/build-helpers/report-config.sh"
+        [ -f "$REPORT" ] && bash "$REPORT" "$KERNEL_ROOT" "$ANDROID_VER" "$KERNEL_VER" || true

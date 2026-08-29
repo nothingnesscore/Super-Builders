@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 KERNEL_ROOT="${1:?}"
 KERNEL_VER="${2:?}"
@@ -7,18 +7,21 @@ SUFFIX="${3:-SukiSU}"
 
 cd "$KERNEL_ROOT"
 
-if [ -f "build/build.sh" ]; then
-  [ -f "./common/scripts/setlocalversion" ] && sed -i 's/-dirty//' ./common/scripts/setlocalversion 2>/dev/null || true
-else
-  [ -f "./build/kernel/kleaf/impl/stamp.bzl" ] && sed -i "/stable_scmversion_cmd/s/-maybe-dirty//g" ./build/kernel/kleaf/impl/stamp.bzl 2>/dev/null || true
-  [ -f "./common/scripts/setlocalversion" ] && sed -i 's/-dirty//' ./common/scripts/setlocalversion 2>/dev/null || true
-  for exp in ./common/android/abi_gki_protected_exports_*; do [ -f "$exp" ] && : > "$exp"; done 2>/dev/null || true
-  if [ -f "./common/BUILD.bazel" ]; then
-    perl -pi -e 's/^\s*"protected_exports_list"\s*:\s*"android\/abi_gki_protected_exports_aarch64",\s*$//g;' ./common/BUILD.bazel 2>/dev/null || true
-    if ! grep -q "sukisu_gki.fragment" ./common/BUILD.bazel 2>/dev/null; then
-      echo 'exports_files(glob(["arch/arm64/configs/**", "android/**"]))' >> ./common/BUILD.bazel 2>/dev/null || true
-    fi
+if [ -f "./common/scripts/setlocalversion" ]; then
+  if [[ "$KERNEL_VER" == "5."* ]] || [[ "$KERNEL_VER" == "6.1" ]]; then
+    perl -i -0777 -pe "s/(.*)echo \"\\\\\$res\"/\$1echo \"\\\\\$res-${SUFFIX}\"/s" ./common/scripts/setlocalversion || true
+  else
+    perl -i -0777 -pe 's/(.*)echo "\$\{KERNELVERSION\}\$\{file_localversion\}\$\{config_localversion\}\$\{LOCALVERSION\}\$\{scm_version\}"/$1echo "\${KERNELVERSION}\${file_localversion}\${config_localversion}\${LOCALVERSION}-'"${SUFFIX}"'\${scm_version}"/s' ./common/scripts/setlocalversion || true
   fi
+fi
+
+if [ -f "build/build.sh" ]; then
+  [ -f "./common/scripts/setlocalversion" ] && sed -i 's/-dirty//' ./common/scripts/setlocalversion || true
+else
+  [ -f "./build/kernel/kleaf/impl/stamp.bzl" ] && sed -i "/stable_scmversion_cmd/s/-maybe-dirty//g" ./build/kernel/kleaf/impl/stamp.bzl || true
+  [ -f "./common/scripts/setlocalversion" ] && sed -i 's/-dirty//' ./common/scripts/setlocalversion || true
+  rm -f ./common/android/abi_gki_protected_exports_* 2>/dev/null || true
+  [ -f "./common/BUILD.bazel" ] && perl -pi -e 's/^\s*"protected_exports_list"\s*:\s*"android\/abi_gki_protected_exports_aarch64",\s*$//;' ./common/BUILD.bazel || true
 fi
 
 if [ -d "common" ]; then
@@ -28,5 +31,3 @@ if [ -d "common" ]; then
   git add -A 2>/dev/null || true
   git commit -m "${SUFFIX}: Clean Build" 2>/dev/null || true
 fi
-
-exit 0
