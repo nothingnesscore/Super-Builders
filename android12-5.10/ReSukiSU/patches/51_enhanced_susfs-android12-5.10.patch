@@ -198,3 +198,43 @@ index 1fc33b4..a7441e9 100644
 +#else
 +static inline bool susfs_is_uid_zeromount_excluded(uid_t uid) { return false; }
 +#endif
+
+
+diff --git a/include/linux/susfs.h b/include/linux/susfs.h
+--- a/include/linux/susfs.h
++++ b/include/linux/susfs.h
+@@ -1,5 +1,21 @@
+ #ifndef LINUX_SUSFS_H
+ #define LINUX_SUSFS_H
++
++struct st_susfs_sus_kstat_redirect {
++	char                                    virtual_pathname[SUSFS_MAX_LEN_PATHNAME];
++	char                                    real_pathname[SUSFS_MAX_LEN_PATHNAME];
++	unsigned long                           spoofed_ino;
++	unsigned long                           spoofed_dev;
++	unsigned int                            spoofed_nlink;
++	long long                               spoofed_size;
++	long                                    spoofed_atime_tv_sec;
++	long                                    spoofed_mtime_tv_sec;
++	long                                    spoofed_ctime_tv_sec;
++	long                                    spoofed_atime_tv_nsec;
++	long                                    spoofed_mtime_tv_nsec;
++	long                                    spoofed_ctime_tv_nsec;
++	unsigned long                           spoofed_blksize;
++	unsigned long long                      spoofed_blocks;
++	int                                     err;
++};
+ 
+ struct st_susfs_sus_mount {
+@@ -150,4 +166,11 @@
+ 
+ void susfs_init(void);
+ 
++#ifdef CONFIG_KSU_SUSFS_SUS_KSTAT_REDIRECT
++int susfs_add_sus_kstat_redirect(void __user *user_arg);
++bool susfs_is_sus_kstat_redirect(struct dentry *dentry, struct kstat *stat);
++#endif
++#ifdef CONFIG_KSU_SUSFS_UNICODE_FILTER
++bool susfs_check_unicode_bypass(const char *pathname);
++#endif
+ #endif /* #ifndef LINUX_SUSFS_H */
