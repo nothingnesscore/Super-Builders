@@ -435,25 +435,27 @@ jobs:
       if: failure()
       run: |
         echo "=== Searching for build logs ==="
+        # Copy logs to a directory
+        mkdir -p $GITHUB_WORKSPACE/debug-logs
+        
         # Bazel logs
         for BLOG in $(find "$HOME/.cache/bazel" -name 'command.log' 2>/dev/null | head -3); do
-          echo "::group::Bazel command.log"
-          tail -200 "$BLOG"
-          echo "::endgroup::"
+          cp "$BLOG" "$GITHUB_WORKSPACE/debug-logs/bazel_command_$(basename $(dirname $BLOG)).log"
         done
         # Kernel logs
         for LOG in $(find "$KERNEL_ROOT" -name '*.log' -newer "$KERNEL_ROOT/common" -type f 2>/dev/null | head -5); do
-          echo "::group::$(basename "$LOG")"
-          tail -80 "$LOG"
-          echo "::endgroup::"
+          cp "$LOG" "$GITHUB_WORKSPACE/debug-logs/$(basename "$LOG")"
         done
-        # Show Bazel execution log
-        BAZEL_OUT=$(find "$KERNEL_ROOT" -path "*/bazel-out/*" -name "*.log" 2>/dev/null | head -5)
-        for BL in $BAZEL_OUT; do
-          echo "::group::$(basename "$BL")"
-          tail -80 "$BL"
-          echo "::endgroup::"
-        done
+        
+        # Push to debug-logs branch
+        cd $GITHUB_WORKSPACE
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git fetch origin
+        git checkout -B debug-logs
+        git add debug-logs/
+        git commit -m "chore: upload build failure logs"
+        git push origin debug-logs --force
 
     - name: Prepare AnyKernel3
       run: |
