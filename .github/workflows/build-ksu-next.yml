@@ -328,15 +328,7 @@ jobs:
         else
           TARGET_FILE="$KERNEL_ROOT/common/kernel/module.c"
         fi
-        sed -i '/bad_version:/{:a;n;/return 0;/{s/return 0;/return 1;/;b};ba}' "$TARGET_FILE"
-
-    - name: Clean Build Flags
-      working-directory: ${{ env.KERNEL_ROOT }}
-      run: |
-        HELPERS="$GITHUB_WORKSPACE/$VERSION_DIR/build-helpers"
-        bash "$HELPERS/clean-build-flags.sh" . "$KERNEL_VER" "KernelSU-Next"
-
-    - name: Set Stock Build Identity
+        sed -i '/bad_version:/{:a;n;/return 0;/{s/return 0;/return 1;/;b};ba}' "$TARGET_FILE"    - name: Set Stock Build Identity
       working-directory: ${{ env.KERNEL_ROOT }}/common
       env:
         INPUT_CODENAME: ${{ inputs.device_codename }}
@@ -407,6 +399,15 @@ jobs:
           echo "IDENTITY_STATUS=Applied ($DEVICE_CODENAME)"
         } >> "$GITHUB_ENV"
 
+
+    - name: Clean Build Flags
+      working-directory: ${{ env.KERNEL_ROOT }}
+      run: |
+        HELPERS="$GITHUB_WORKSPACE/$VERSION_DIR/build-helpers"
+        bash "$HELPERS/clean-build-flags.sh" . "$KERNEL_VER" "KernelSU-Next"
+
+
+
     - name: Build Kernel
       working-directory: ${{ env.KERNEL_ROOT }}
       run: |
@@ -421,7 +422,7 @@ jobs:
             echo 'override KBUILD_HOSTLDFLAGS += --sysroot=/' >> common/tools/bpf/resolve_btfids/Makefile
             echo 'override LDFLAGS += --sysroot=/' >> common/tools/bpf/resolve_btfids/Makefile
           fi
-          tools/bazel build --config=fast --lto=$LTO_MODE --defconfig_fragment=//common:arch/arm64/configs/sukisu_gki.fragment //common:kernel_aarch64_dist || BUILD_RC=$?
+          tools/bazel build --config=fast --lto=$LTO_MODE --verbose_failures //common:kernel_aarch64_dist || BUILD_RC=$?
         fi
         if [ "$BUILD_RC" -ne 0 ]; then
           if find . -name "Image" -type f 2>/dev/null | grep -q .; then
@@ -434,11 +435,30 @@ jobs:
     - name: Dump Build Errors
       if: failure()
       run: |
-        for LOG in $(find "$KERNEL_ROOT" -name '*.log' -newer "$KERNEL_ROOT/common" -type f 2>/dev/null | head -5); do
-          echo "::group::$(basename "$LOG")"
-          tail -80 "$LOG"
+        echo "## ❌ Build Failure Diagnostics" >> "$GITHUB_STEP_SUMMARY"
+        
+        # 1. Check Bazel command.log and last build logs
+        for BLOG in $(find "$HOME/.cache/bazel" "$KERNEL_ROOT" -name 'command.log' -o -name 'build.log' -o -name 'last_build_infos.json' 2>/dev/null | head -10); do
+          echo "::group::$(basename "$BLOG")"
+          tail -120 "$BLOG"
           echo "::endgroup::"
+          echo "### 📄 $(basename "$BLOG")" >> "$GITHUB_STEP_SUMMARY"
+          echo '```text' >> "$GITHUB_STEP_SUMMARY"
+          tail -50 "$BLOG" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
         done
+
+        # 2. Check kernel log files
+        for LOG in $(find "$KERNEL_ROOT" -name '*.log' -newer "$KERNEL_ROOT/common" -type f 2>/dev/null | head -10); do
+          echo "::group::$(basename "$LOG")"
+          tail -120 "$LOG"
+          echo "::endgroup::"
+          echo "### 📄 $(basename "$LOG")" >> "$GITHUB_STEP_SUMMARY"
+          echo '```text' >> "$GITHUB_STEP_SUMMARY"
+          tail -50 "$LOG" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+        done
+
 
     - name: Prepare AnyKernel3
       run: |

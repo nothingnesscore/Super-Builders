@@ -496,15 +496,30 @@ jobs:
     - name: Dump Build Errors
       if: failure()
       run: |
-        echo "::group::Build directory structure"
-        ls -la "$SYNC_DIR/kernel_platform/" 2>/dev/null || true
-        ls -la "$SYNC_DIR/kernel_platform/oplus/build/" 2>/dev/null || true
-        echo "::endgroup::"
-        for LOG in $(find "$SYNC_DIR" -name '*.log' -newer "$SYNC_DIR/.repo" -type f 2>/dev/null | head -5); do
-          echo "::group::$(basename "$LOG")"
-          tail -80 "$LOG"
+        echo "## ❌ Build Failure Diagnostics" >> "$GITHUB_STEP_SUMMARY"
+        
+        # 1. Check Bazel command.log and last build logs
+        for BLOG in $(find "$HOME/.cache/bazel" "$KERNEL_ROOT" -name 'command.log' -o -name 'build.log' -o -name 'last_build_infos.json' 2>/dev/null | head -10); do
+          echo "::group::$(basename "$BLOG")"
+          tail -120 "$BLOG"
           echo "::endgroup::"
+          echo "### 📄 $(basename "$BLOG")" >> "$GITHUB_STEP_SUMMARY"
+          echo '```text' >> "$GITHUB_STEP_SUMMARY"
+          tail -50 "$BLOG" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
         done
+
+        # 2. Check kernel log files
+        for LOG in $(find "$KERNEL_ROOT" -name '*.log' -newer "$KERNEL_ROOT/common" -type f 2>/dev/null | head -10); do
+          echo "::group::$(basename "$LOG")"
+          tail -120 "$LOG"
+          echo "::endgroup::"
+          echo "### 📄 $(basename "$LOG")" >> "$GITHUB_STEP_SUMMARY"
+          echo '```text' >> "$GITHUB_STEP_SUMMARY"
+          tail -50 "$LOG" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+        done
+
 
     - name: Prepare AnyKernel3
       run: |
