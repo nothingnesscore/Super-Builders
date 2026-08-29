@@ -377,7 +377,7 @@ jobs:
           echo "sub_level=${BASH_REMATCH[3]}" >> "$GITHUB_OUTPUT"
           echo "os_patch_level=${BASH_REMATCH[4]}" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
         with:
           sparse-checkout: device-profiles.json
           sparse-checkout-cone-mode: false

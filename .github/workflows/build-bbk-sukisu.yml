@@ -134,7 +134,7 @@ jobs:
         echo "$HOME/bin" >> "$GITHUB_PATH"
 
     - name: Checkout Repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v4
 
     - name: Parse Device Registry
       run: |
@@ -299,7 +299,7 @@ jobs:
         } >> "$GITHUB_ENV"
 
     - name: Download AnyKernel3
-      uses: actions/download-artifact@v8
+      uses: actions/download-artifact@v4
       with:
         name: anykernel3
         path: AnyKernel3
@@ -579,7 +579,7 @@ jobs:
         fi
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.FILE_NAME }}-AnyKernel3
         path: ./AnyKernel3/**
@@ -588,7 +588,7 @@ jobs:
 
     - name: Upload Rejects
       if: always() && env.REJ_COUNT > 0
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.FILE_NAME }}-Rejects
         path: patch-rejects/

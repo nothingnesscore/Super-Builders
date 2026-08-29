@@ -130,7 +130,7 @@ jobs:
         sudo apt-get install -y -qq lld binutils flex bison libssl-dev libelf-dev libdw-dev dwarves gcc-aarch64-linux-gnu
 
     - name: Checkout Repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v4
 
     - name: Parse Device Registry
       run: |
@@ -269,7 +269,7 @@ jobs:
         echo "Kernel: ${KERNEL_VER}.${SUBLEVEL}"
 
     - name: Download AnyKernel3
-      uses: actions/download-artifact@v8
+      uses: actions/download-artifact@v4
       with:
         name: anykernel3
         path: AnyKernel3
@@ -345,7 +345,7 @@ jobs:
 
     - name: Download Kernel Patches
       if: inputs.add_ptrace_fix || inputs.add_perf_patches
-      uses: actions/download-artifact@v8
+      uses: actions/download-artifact@v4
       with:
         name: kernel-patches
         path: kernel_patches
@@ -544,7 +544,7 @@ jobs:
         fi
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.FILE_NAME }}-AnyKernel3
         path: ./AnyKernel3/**
@@ -553,7 +553,7 @@ jobs:
 
     - name: Upload Rejects
       if: always() && env.REJ_COUNT > 0
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.FILE_NAME }}-Rejects
         path: patch-rejects/

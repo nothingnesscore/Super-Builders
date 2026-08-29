@@ -61,7 +61,7 @@ jobs:
 
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v4
 
     - name: Free Disk Space
       uses: endersonmenezes/free-disk-space@v3
@@ -82,26 +82,26 @@ jobs:
       run: sudo apt-get install -y -qq lld binutils
 
     - name: Download AnyKernel3 Artifact
-      uses: actions/download-artifact@v8
+      uses: actions/download-artifact@v4
       with:
         name: anykernel3
         path: AnyKernel3
 
     - name: Download Git Repo Tool Artifact
-      uses: actions/download-artifact@v8
+      uses: actions/download-artifact@v4
       with:
         name: git-repo-tool
         path: git-repo
 
     - name: Download Kernel Patches Artifact
-      uses: actions/download-artifact@v8
+      uses: actions/download-artifact@v4
       with:
         name: kernel-patches
         path: kernel_patches
 
     - name: Download SukiSU Patch
       if: inputs.add_zram
-      uses: actions/download-artifact@v8
+      uses: actions/download-artifact@v4
       with:
         name: sukisu-patch
         path: SukiSU_patch
@@ -470,7 +470,7 @@ jobs:
         fi
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.FILE_NAME }}-AnyKernel3
         path: ./AnyKernel3/**
@@ -479,7 +479,7 @@ jobs:
 
     - name: Upload Rejects
       if: always() && env.REJ_COUNT > 0
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.FILE_NAME }}-Rejects
         path: patch-rejects/
