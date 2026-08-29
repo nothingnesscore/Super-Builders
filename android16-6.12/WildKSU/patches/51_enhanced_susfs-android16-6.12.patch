@@ -1,31 +1,8 @@
-diff --git a/fs/Kconfig b/fs/Kconfig
-index 1111111..2222222 100644
---- a/fs/Kconfig
-+++ b/fs/Kconfig
-@@ -370,3 +370,17 @@ config KSU_SUSFS
- 	  susfs is a subsystem to hide various root and modification artifacts.
- 
-+config KSU_SUSFS_SUS_KSTAT_REDIRECT
-+	bool "Enable to redirect kstat for virtual paths"
-+	depends on KSU_SUSFS && KSU_SUSFS_SUS_KSTAT
-+	default y
-+	help
-+	  Allows redirecting stat calls on virtual paths to real file metadata.
-+
-+config KSU_SUSFS_UNICODE_FILTER
-+	bool "Enable unicode filter for path lookups"
-+	depends on KSU_SUSFS
-+	default y
-+	help
-+	  Filter out confusable or zero-width unicode characters in filenames.
-+
- endif # KSU_SUSFS
 diff --git a/fs/namei.c b/fs/namei.c
-index 1111111..2222222 100644
+index 8da98d9..c223f76 100644
 --- a/fs/namei.c
 +++ b/fs/namei.c
-@@ -2499,6 +2499,11 @@ int filename_lookup(int dfd, struct filename *name, unsigned flags,
- 	int retval;
+@@ -2605,6 +2605,10 @@ int filename_lookup(int dfd, struct filename *name, unsigned flags,
  	struct nameidata nd;
  	if (IS_ERR(name))
  		return PTR_ERR(name);
@@ -35,11 +12,13 @@ index 1111111..2222222 100644
 +#endif
  	set_nameidata(&nd, dfd, name, root);
  	retval = path_lookupat(&nd, flags | LOOKUP_RCU, path);
+ 	if (unlikely(retval == -ECHILD))
 diff --git a/fs/stat.c b/fs/stat.c
-index 1111111..2222222 100644
+index 7716ce9..81e4989 100644
 --- a/fs/stat.c
 +++ b/fs/stat.c
-@@ -234,6 +234,11 @@ static int vfs_statx(int dfd, struct filename *filename, int flags,
+@@ -284,6 +284,11 @@ retry:
+ 		goto out;
  
  	error = vfs_getattr(&path, stat, request_mask, flags);
 +#ifdef CONFIG_KSU_SUSFS_SUS_KSTAT_REDIRECT
@@ -48,25 +27,16 @@ index 1111111..2222222 100644
 +	}
 +#endif
  
- 	stat->mnt_id = real_mount(path.mnt)->mnt_id;
- 	stat->result_mask |= STATX_MNT_ID;
+ #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+ 	if (real_mount(path.mnt)->mnt_id >= DEFAULT_KSU_MNT_ID &&
 diff --git a/fs/susfs.c b/fs/susfs.c
-index 1111111..2222222 100644
+index d88b00e..ae24af2 100644
 --- a/fs/susfs.c
 +++ b/fs/susfs.c
-@@ -8,6 +8,8 @@
- #include <linux/list.h>
- #include <linux/init_task.h>
- #include <linux/spinlock.h>
-+#include <linux/hashtable.h>
-+#include <linux/namei.h>
- #include <linux/stat.h>
- #include <linux/uaccess.h>
- #include <linux/version.h>
-@@ -29,6 +31,141 @@
- #define SUSFS_LOGI(fmt, ...) 
- #define SUSFS_LOGE(fmt, ...) 
- #endif
+@@ -1466,3 +1466,130 @@ void susfs_init(void) {\
+ /* No module exit is needed becuase it should never be a loadable kernel module */
+ //void __init susfs_exit(void)
+ 
 +
 +#ifdef CONFIG_KSU_SUSFS_UNICODE_FILTER
 +static bool has_suspicious_unicode(const char *path, long len)
@@ -194,53 +164,11 @@ index 1111111..2222222 100644
 +	return false;
 +}
 +#endif
-diff --git a/include/linux/susfs.h b/include/linux/susfs.h
-index 1111111..2222222 100644
---- a/include/linux/susfs.h
-+++ b/include/linux/susfs.h
-@@ -56,6 +56,25 @@ struct st_susfs_sus_mount {
- 	int                                     err;
- };
- #endif
-+
-+struct st_susfs_sus_kstat_redirect {
-+	char                                    virtual_pathname[SUSFS_MAX_LEN_PATHNAME];
-+	char                                    real_pathname[SUSFS_MAX_LEN_PATHNAME];
-+	unsigned long                           spoofed_ino;
-+	unsigned long                           spoofed_dev;
-+	unsigned int                            spoofed_nlink;
-+	long long                               spoofed_size;
-+	long                                    spoofed_atime_tv_sec;
-+	long                                    spoofed_mtime_tv_sec;
-+	long                                    spoofed_ctime_tv_sec;
-+	long                                    spoofed_atime_tv_nsec;
-+	long                                    spoofed_mtime_tv_nsec;
-+	long                                    spoofed_ctime_tv_nsec;
-+	unsigned long                           spoofed_blksize;
-+	unsigned long long                      spoofed_blocks;
-+	int                                     err;
-+};
-+
- /* sus_kstat */
- #ifdef CONFIG_KSU_SUSFS_SUS_KSTAT
- struct st_susfs_sus_kstat {
-@@ -190,6 +209,14 @@ int susfs_spoof_cmdline_or_bootconfig(char *new_cmdline);
- #endif
- 
-+#ifdef CONFIG_KSU_SUSFS_SUS_KSTAT_REDIRECT
-+int susfs_add_sus_kstat_redirect(void __user *user_arg);
-+bool susfs_is_sus_kstat_redirect(struct dentry *dentry, struct kstat *stat);
-+#endif
-+#ifdef CONFIG_KSU_SUSFS_UNICODE_FILTER
-+bool susfs_check_unicode_bypass(const char *pathname);
-+#endif
-+
- #endif /* #ifndef LINUX_SUSFS_H */
 diff --git a/include/linux/susfs_def.h b/include/linux/susfs_def.h
-index 1111111..2222222 100644
+index 1fc33b4..a7441e9 100644
 --- a/include/linux/susfs_def.h
 +++ b/include/linux/susfs_def.h
-@@ -18,6 +18,7 @@
+@@ -19,6 +19,7 @@
  #define CMD_SUSFS_ADD_SUS_KSTAT 0x55570
  #define CMD_SUSFS_UPDATE_SUS_KSTAT 0x55571
  #define CMD_SUSFS_ADD_SUS_KSTAT_STATICALLY 0x55572
@@ -248,8 +176,8 @@ index 1111111..2222222 100644
  #define CMD_SUSFS_ADD_TRY_UMOUNT 0x55580 /* deprecated */
  #define CMD_SUSFS_SET_UNAME 0x55590
  #define CMD_SUSFS_ENABLE_LOG 0x555a0
-@@ -60,6 +61,8 @@
- #define AS_FLAGS_SUS_PATH 34
+@@ -64,6 +65,8 @@
+ #define AS_FLAGS_SUS_MOUNT 34
  #define AS_FLAGS_SUS_KSTAT 35
  #define AS_FLAGS_OPEN_REDIRECT 36
 +#define AS_FLAGS_SUS_KSTAT_REDIRECT 37
@@ -257,13 +185,10 @@ index 1111111..2222222 100644
  #define AS_FLAGS_SUS_MAP 39
  
  #define ND_STATE_LOOKUP_LAST 32
-@@ -75,4 +78,13 @@ static inline void susfs_set_current_proc_umounted(void) {
- 	set_ti_thread_flag(&current->thread_info, TIF_PROC_UMOUNTED);
- }
- 
-+static inline bool susfs_is_current_proc_umounted_app(void) {
-+	return test_ti_thread_flag(&current->thread_info, TIF_PROC_UMOUNTED);
-+}
+@@ -150,3 +153,12 @@ static inline void susfs_clear_current_proc_no_su(void) {
+ 		unlikely(test_bit(AS_FLAGS_OPEN_REDIRECT, &inode->i_mapping->flags)) && \
+ 		susfs_is_current_proc_umounted_app()
+ #endif // #ifndef KSU_SUSFS_DEF_H
 +
 +#ifdef CONFIG_ZEROMOUNT
 +extern bool zeromount_is_uid_blocked(uid_t uid);
@@ -273,4 +198,3 @@ index 1111111..2222222 100644
 +#else
 +static inline bool susfs_is_uid_zeromount_excluded(uid_t uid) { return false; }
 +#endif
-+
