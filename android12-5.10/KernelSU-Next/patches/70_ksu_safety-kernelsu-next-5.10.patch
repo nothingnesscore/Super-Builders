@@ -115,7 +115,7 @@ diff --git a/kernel/core/init.c b/kernel/core/init.c
 index c158df8..a7d90dc 100644
 --- a/kernel/core/init.c
 +++ b/kernel/core/init.c
-@@ -1,6 +1,9 @@
+@@ -1,3 +1,6 @@
  #include <linux/export.h>
  #include <linux/fs.h>
 +#ifdef CONFIG_KSU_SUSFS
