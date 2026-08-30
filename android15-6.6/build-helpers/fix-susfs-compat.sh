@@ -124,7 +124,7 @@ fi
 # CONFIG_KSU_SUSFS and CONFIG_KSU_MANUAL_HOOK are defined, both compile,
 # causing a redefinition error. Remove the 6.8+ block.
 # ---------------------------------------------------------------------------
-SETUID="$KERNEL_DIR/drivers/kernelsu/setuid_hook.c"
+SETUID=$(find "$KERNEL_DIR" -type f -name "setuid_hook.c" | head -n 1)
 if [ -f "$SETUID" ]; then
     DUPS=$(grep -c 'int ksu_handle_setresuid' "$SETUID")
     if [ "$DUPS" -gt 1 ]; then
@@ -224,7 +224,7 @@ echo "fix-susfs-compat: done"
 # can break because arch-specific macros (_NSIG) aren't set yet, leading to
 # array bounds errors. Ensure susfs.h comes AFTER fs.h.
 # ---------------------------------------------------------------------------
-INIT_C="$KERNEL_DIR/drivers/kernelsu/core/init.c"
+INIT_C=$(find "$KERNEL_DIR" -type f -name "init.c" | grep -i "core/init.c" | head -n 1)
 if [ -f "$INIT_C" ]; then
     if grep -q '#include <linux/susfs.h>' "$INIT_C"; then
         echo "fix-susfs-compat: ensuring susfs.h is included after fs.h in init.c"
