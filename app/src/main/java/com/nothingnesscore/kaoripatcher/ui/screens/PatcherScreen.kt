@@ -25,7 +25,7 @@ fun PatcherScreen() {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "ZeroMount Framework Patcher",
+            text = "KaoriOS ZeroMount Patcher",
             style = MaterialTheme.typography.headlineMedium
         )
         
@@ -41,9 +41,9 @@ fun PatcherScreen() {
         Button(
             onClick = {
                 isPatching = true
-                statusText = "Patching in progress..."
+                statusText = "Patching in progress (extracting framework)..."
                 coroutineScope.launch {
-                    statusText = PatcherService.patchFramework(context.cacheDir)
+                    statusText = PatcherService.patchFramework(context, context.cacheDir)
                     isPatching = false
                 }
             },
