@@ -130,11 +130,20 @@ if [ -f "$SETUID" ]; then
     if [ "$DUPS" -gt 1 ]; then
         echo "fix-susfs-compat: removing duplicate ksu_handle_setresuid (6.8+ MANUAL_HOOK block)"
         python3 - "$SETUID" << 'PYEOF'
-import sys
+import sys, re
 path = sys.argv[1]
 with open(path) as f:
     lines = f.readlines()
-start = next((i for i, l in enumerate(lines) if 'KERNEL_VERSION(6, 8, 0)' in l), None)
+occurrences = [i for i, l in enumerate(lines) if 'int ksu_handle_setresuid' in l]
+if len(occurrences) > 1:
+    target_idx = occurrences[1]
+    start = None
+    for i in range(target_idx, -1, -1):
+        if lines[i].strip().startswith('#if'):
+            start = i
+            break
+else:
+    start = None
 if start is not None:
     depth, end = 0, None
     for i in range(start, len(lines)):
@@ -234,13 +243,45 @@ path = sys.argv[1]
 with open(path) as f:
     content = f.read()
 
-old_hunk = """#ifdef CONFIG_KSU_SUSFS\n#include <linux/susfs.h>\n#endif\n#include <linux/export.h>\n#include <linux/fs.h>"""
-new_hunk = """#include <linux/export.h>\n#include <linux/fs.h>\n#ifdef CONFIG_KSU_SUSFS\n#include <linux/susfs.h>\n#endif"""
+import re
 
-if old_hunk in content:
-    content = content.replace(old_hunk, new_hunk)
+# Find if susfs.h comes before fs.h
+idx_susfs = content.find('<linux/susfs.h>')
+idx_fs = content.find('<linux/fs.h>')
+
+if idx_susfs != -1 and idx_fs != -1 and idx_susfs < idx_fs:
+    # It's before fs.h! We need to move it.
+    # We will remove any line containing susfs.h, and its surrounding #ifdef/#endif if they exist adjacently
+    lines = content.split('\n')
+    out_lines = []
+    susfs_lines = []
+    
+    i = 0
+    while i < len(lines):
+        if '<linux/susfs.h>' in lines[i]:
+            # Extract this line
+            susfs_block = [lines[i]]
+            # Check if previous line is #ifdef CONFIG_KSU_SUSFS
+            if i > 0 and '#ifdef' in lines[i-1] and 'CONFIG_KSU_SUSFS' in lines[i-1]:
+                susfs_block.insert(0, out_lines.pop())
+                # Check if next line is #endif
+                if i + 1 < len(lines) and '#endif' in lines[i+1]:
+                    susfs_block.append(lines[i+1])
+                    i += 1
+            susfs_lines.extend(susfs_block)
+        else:
+            out_lines.append(lines[i])
+        i += 1
+        
+    # Now insert susfs_lines after <linux/fs.h>
+    final_lines = []
+    for line in out_lines:
+        final_lines.append(line)
+        if '<linux/fs.h>' in line:
+            final_lines.extend(susfs_lines)
+            
     with open(path, 'w') as f:
-        f.write(content)
+        f.write('\n'.join(final_lines))
 PYEOF
     fi
 else
