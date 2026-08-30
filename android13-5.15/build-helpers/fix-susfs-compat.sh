@@ -163,4 +163,34 @@ else
 fi
 
 echo "fix-susfs-compat: done"
+
+# ---------------------------------------------------------------------------
+# Fix 7: core/init.c - susfs.h include order
+# When susfs.h is included BEFORE fs.h, transitive includes (like signal.h)
+# can break because arch-specific macros (_NSIG) aren't set yet, leading to
+# array bounds errors. Ensure susfs.h comes AFTER fs.h.
+# ---------------------------------------------------------------------------
+INIT_C="$KERNEL_DIR/drivers/kernelsu/core/init.c"
+if [ -f "$INIT_C" ]; then
+    if grep -q '#include <linux/susfs.h>' "$INIT_C"; then
+        echo "fix-susfs-compat: ensuring susfs.h is included after fs.h in init.c"
+        python3 - "$INIT_C" << 'PYEOF'
+import sys
+path = sys.argv[1]
+with open(path) as f:
+    content = f.read()
+
+old_hunk = """#ifdef CONFIG_KSU_SUSFS\n#include <linux/susfs.h>\n#endif\n#include <linux/export.h>\n#include <linux/fs.h>"""
+new_hunk = """#include <linux/export.h>\n#include <linux/fs.h>\n#ifdef CONFIG_KSU_SUSFS\n#include <linux/susfs.h>\n#endif"""
+
+if old_hunk in content:
+    content = content.replace(old_hunk, new_hunk)
+    with open(path, 'w') as f:
+        f.write(content)
+PYEOF
+    fi
+else
+    echo "fix-susfs-compat: core/init.c not found - skipping include order fix"
+fi
+
 exit 0
