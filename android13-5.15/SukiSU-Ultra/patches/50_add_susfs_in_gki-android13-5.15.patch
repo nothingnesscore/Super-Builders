@@ -2533,12 +2533,12 @@ index 13be7826a..57f35ebff 100644
  static ssize_t sel_write_create(struct file *file, char *buf, size_t size)
  {
  	struct selinux_fs_info *fsi = file_inode(file)->i_sb->s_fs_info;
-diff --git a/fs/susfs.c b/fs/susfs.c
+diff --git a/kernel_patches/fs/susfs.c b/fs/susfs.c
 new file mode 100644
-index 0000000..0000000
+index 0000000..737a217
 --- /dev/null
 +++ b/fs/susfs.c
-@@ -0,0 +1,1469 @@
+@@ -0,0 +1,1468 @@
 +#include <linux/version.h>
 +#include <linux/cred.h>
 +#include <linux/fs.h>
@@ -4007,13 +4007,12 @@ index 0000000..0000000
 +/* No module exit is needed becuase it should never be a loadable kernel module */
 +//void __init susfs_exit(void)
 +
-+
-diff --git a/include/linux/susfs.h b/include/linux/susfs.h
+diff --git a/kernel_patches/include/linux/susfs.h b/include/linux/susfs.h
 new file mode 100644
-index 0000000..0000000
+index 0000000..fc80b87
 --- /dev/null
 +++ b/include/linux/susfs.h
-@@ -0,0 +1,242 @@
+@@ -0,0 +1,241 @@
 +#ifndef KSU_SUSFS_H
 +#define KSU_SUSFS_H
 +
@@ -4255,13 +4254,12 @@ index 0000000..0000000
 +void susfs_init(void);
 +
 +#endif
-+
-diff --git a/include/linux/susfs_def.h b/include/linux/susfs_def.h
+diff --git a/kernel_patches/include/linux/susfs_def.h b/include/linux/susfs_def.h
 new file mode 100644
-index 0000000..0000000
+index 0000000..1fc33b4
 --- /dev/null
 +++ b/include/linux/susfs_def.h
-@@ -0,0 +1,153 @@
+@@ -0,0 +1,152 @@
 +#ifndef KSU_SUSFS_DEF_H
 +#define KSU_SUSFS_DEF_H
 +
@@ -4414,4 +4412,3 @@ index 0000000..0000000
 +		unlikely(test_bit(AS_FLAGS_OPEN_REDIRECT, &inode->i_mapping->flags)) && \
 +		susfs_is_current_proc_umounted_app()
 +#endif // #ifndef KSU_SUSFS_DEF_H
-+

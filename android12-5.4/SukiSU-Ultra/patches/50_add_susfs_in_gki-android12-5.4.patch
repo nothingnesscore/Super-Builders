@@ -1464,12 +1464,12 @@ index fa3f48a51aa9..6f7f5236731b 100644
  	up_read(&uts_sem);
  	if (copy_to_user(name, &tmp, sizeof(tmp)))
  		return -EFAULT;
-diff --git a/fs/susfs.c b/fs/susfs.c
+diff --git a/kernel_patches/fs/susfs.c b/fs/susfs.c
 new file mode 100644
-index 0000000..0000000
+index 0000000..2d95768
 --- /dev/null
 +++ b/fs/susfs.c
-@@ -0,0 +1,917 @@
+@@ -0,0 +1,916 @@
 +#include <linux/version.h>
 +#include <linux/cred.h>
 +#include <linux/fs.h>
@@ -2386,13 +2386,12 @@ index 0000000..0000000
 +/* No module exit is needed becuase it should never be a loadable kernel module */
 +//void __init susfs_exit(void)
 +
-+
-diff --git a/include/linux/susfs.h b/include/linux/susfs.h
+diff --git a/kernel_patches/include/linux/susfs.h b/include/linux/susfs.h
 new file mode 100644
-index 0000000..0000000
+index 0000000..ef31283
 --- /dev/null
 +++ b/include/linux/susfs.h
-@@ -0,0 +1,187 @@
+@@ -0,0 +1,186 @@
 +#ifndef KSU_SUSFS_H
 +#define KSU_SUSFS_H
 +
@@ -2579,13 +2578,12 @@ index 0000000..0000000
 +void susfs_init(void);
 +
 +#endif
-+
-diff --git a/include/linux/susfs_def.h b/include/linux/susfs_def.h
+diff --git a/kernel_patches/include/linux/susfs_def.h b/include/linux/susfs_def.h
 new file mode 100644
-index 0000000..0000000
+index 0000000..7442047
 --- /dev/null
 +++ b/include/linux/susfs_def.h
-@@ -0,0 +1,63 @@
+@@ -0,0 +1,62 @@
 +#ifndef KSU_SUSFS_DEF_H
 +#define KSU_SUSFS_DEF_H
 +
@@ -2648,4 +2646,3 @@ index 0000000..0000000
 +#define DATA_ADB_NO_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT "/data/adb/susfs_no_auto_add_try_umount_for_bind_mount"
 +
 +#endif // #ifndef KSU_SUSFS_DEF_H
-+
