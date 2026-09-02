@@ -1,4 +1,6 @@
 # [base]
+CONFIG_SECCOMP=y
+CONFIG_SECCOMP_FILTER=y
 CONFIG_KSU=y
 # 5.4 input.h includes <sys/time.h> — fails HDRTEST with prebuilt clang
 CONFIG_UAPI_HEADER_TEST=n
@@ -80,6 +82,3 @@ CONFIG_TMPFS_POSIX_ACL=y
 
 # [kpm]
 CONFIG_KPM=y
-
-CONFIG_SECCOMP=y
-CONFIG_SECCOMP_FILTER=y
