@@ -1,0 +1,2 @@
+ok: unsafe strcpy() usage correctly detected with '__write_overflow' in /home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/lib/test_fortify/write_overflow-strcpy-lit.c
+lib/test_fortify/write_overflow-strcpy-lit.log.o:                  U __write_overflow

@@ -1,0 +1,178 @@
+Loading: 
+Loading: 
+Loading: 1 packages loaded
+Loading: 1 packages loaded
+    currently loading: common
+Analyzing: target //common:kernel_aarch64_dist (2 packages loaded)
+Analyzing: target //common:kernel_aarch64_dist (2 packages loaded, 0 targets configured)
+Analyzing: target //common:kernel_aarch64_dist (55 packages loaded, 5744 targets configured)
+Analyzing: target //common:kernel_aarch64_dist (56 packages loaded, 70275 targets configured)
+INFO: Analyzed target //common:kernel_aarch64_dist (56 packages loaded, 93729 targets configured).
+ checking cached actions
+INFO: Found 1 target...
+[0 / 7] [Prepa] Writing script common/kernel_aarch64_dist
+[104 / 422] [Prepa] Symlinking virtual headers for //prebuilts/kernel-build-tools:linux_x86_imported_libs [for tool] ... (2 actions, 0 running)
+[155 / 422] checking cached actions
+[213 / 422] [Prepa] Creating symlinks to in-tree tools @//build/kernel:hermetic-tools/date ... (2 actions, 0 running)
+[400 / 422] Creating symlinks to @//build/kernel:hermetic-tools [for tool]; 1s processwrapper-sandbox ... (4 actions running)
+[402 / 422] Creating symlinks to @//build/kernel:hermetic-tools; 2s processwrapper-sandbox ... (2 actions running)
+[404 / 422] Generating build config @//common:kernel_aarch64_build_config; 0s processwrapper-sandbox ... (2 actions running)
+[405 / 422] Executing genrule //build/kernel:gki_certification_tools; 1s processwrapper-sandbox ... (2 actions running)
+[406 / 422] Executing genrule //build/kernel:gki_certification_tools; 2s processwrapper-sandbox ... (3 actions running)
+[408 / 422] Executing genrule //build/kernel:gki_certification_tools; 4s processwrapper-sandbox ... (2 actions, 1 running)
+[410 / 422] Creating kernel config (lto=thin;sukisu_gki.fragment;trim) @//common:kernel_aarch64_config; 0s local
+INFO: From Creating kernel config (lto=thin;sukisu_gki.fragment;trim) @//common:kernel_aarch64_config:
+.config:7612:warning: override: ZRAM_DEF_COMP_LZ4KD changes choice state
+[411 / 422] [Prepa] Building UAPI kernel headers kernel_aarch64_uapi_headers
+[411 / 422] Building kernel (lto=thin;sukisu_gki.fragment;trim) @//common:kernel_aarch64; 1s local ... (3 actions running)
+[411 / 422] Building kernel (lto=thin;sukisu_gki.fragment;trim) @//common:kernel_aarch64; 11s local ... (3 actions running)
+[412 / 422] Building kernel (lto=thin;sukisu_gki.fragment;trim) @//common:kernel_aarch64; 27s local ... (2 actions running)
+[413 / 422] Building kernel (lto=thin;sukisu_gki.fragment;trim) @//common:kernel_aarch64; 29s local
+[413 / 422] Building kernel (lto=thin;sukisu_gki.fragment;trim) @//common:kernel_aarch64; 40s local
+[413 / 422] Building kernel (lto=thin;sukisu_gki.fragment;trim) @//common:kernel_aarch64; 70s local
+[413 / 422] Building kernel (lto=thin;sukisu_gki.fragment;trim) @//common:kernel_aarch64; 130s local
+[413 / 422] Building kernel (lto=thin;sukisu_gki.fragment;trim) @//common:kernel_aarch64; 190s local
+[413 / 422] Building kernel (lto=thin;sukisu_gki.fragment;trim) @//common:kernel_aarch64; 250s local
+[413 / 422] Building kernel (lto=thin;sukisu_gki.fragment;trim) @//common:kernel_aarch64; 310s local
+[413 / 422] Building kernel (lto=thin;sukisu_gki.fragment;trim) @//common:kernel_aarch64; 370s local
+[413 / 422] Building kernel (lto=thin;sukisu_gki.fragment;trim) @//common:kernel_aarch64; 430s local
+[413 / 422] Building kernel (lto=thin;sukisu_gki.fragment;trim) @//common:kernel_aarch64; 490s local
+[413 / 422] Building kernel (lto=thin;sukisu_gki.fragment;trim) @//common:kernel_aarch64; 550s local
+[413 / 422] Building kernel (lto=thin;sukisu_gki.fragment;trim) @//common:kernel_aarch64; 610s local
+[413 / 422] Building kernel (lto=thin;sukisu_gki.fragment;trim) @//common:kernel_aarch64; 670s local
+[413 / 422] Building kernel (lto=thin;sukisu_gki.fragment;trim) @//common:kernel_aarch64; 730s local
+[413 / 422] Building kernel (lto=thin;sukisu_gki.fragment;trim) @//common:kernel_aarch64; 790s local
+[413 / 422] Building kernel (lto=thin;sukisu_gki.fragment;trim) @//common:kernel_aarch64; 850s local
+ERROR: /home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/BUILD.bazel:139:22: Building kernel (lto=thin;sukisu_gki.fragment;trim) @//common:kernel_aarch64 failed: (Exit 2): bash failed: error executing KernelBuild command (from target //common:kernel_aarch64) /bin/bash -c ... (remaining 1 argument skipped)
+In file included from /home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/drivers/kernelsu/hook/setuid_hook.c:3:
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/susfs_def.h:102:17: error: call to undeclared function 'test_thread_flag'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+        return (likely(test_thread_flag(TIF_PROC_UMOUNTED)));
+                       ^
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/susfs_def.h:106:2: error: call to undeclared function 'set_thread_flag'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+        set_thread_flag(TIF_PROC_UMOUNTED);
+        ^
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/susfs_def.h:110:2: error: call to undeclared function 'clear_thread_flag'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+        clear_thread_flag(TIF_PROC_UMOUNTED);
+        ^
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/susfs_def.h:114:17: error: call to undeclared function 'test_thread_flag'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+        return (likely(test_thread_flag(TIF_PROC_UMOUNTED_FOR_ZYGOTE_NEXT)));
+                       ^
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/susfs_def.h:118:2: error: call to undeclared function 'set_thread_flag'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+        set_thread_flag(TIF_PROC_UMOUNTED_FOR_ZYGOTE_NEXT);
+        ^
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/susfs_def.h:122:2: error: call to undeclared function 'clear_thread_flag'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+        clear_thread_flag(TIF_PROC_UMOUNTED_FOR_ZYGOTE_NEXT);
+        ^
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/susfs_def.h:126:17: error: call to undeclared function 'test_thread_flag'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+        return (likely(test_thread_flag(TIF_PROC_UMOUNTED)) &&
+                       ^
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/susfs_def.h:127:4: error: call to undeclared function 'current_uid'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+                        current_uid().val >= 10000);
+                        ^
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/susfs_def.h:127:17: error: member reference base type 'int' is not a structure or union
+                        current_uid().val >= 10000);
+                        ~~~~~~~~~~~~~^~~~
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/susfs_def.h:131:17: error: call to undeclared function 'test_thread_flag'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+        return (likely(test_thread_flag(TIF_PROC_NO_SU)));
+                       ^
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/susfs_def.h:135:2: error: call to undeclared function 'set_thread_flag'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+        set_thread_flag(TIF_PROC_NO_SU);
+        ^
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/susfs_def.h:139:2: error: call to undeclared function 'clear_thread_flag'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+        clear_thread_flag(TIF_PROC_NO_SU);
+        ^
+In file included from /home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/drivers/kernelsu/hook/setuid_hook.c:26:
+In file included from /home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/sched/signal.h:6:
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/signal.h:97:11: error: array index 3 is past the end of the array (that has type 'unsigned long[1]') [-Werror,-Warray-bounds]
+                return (set->sig[3] | set->sig[2] |
+                        ^        ~
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/uapi/asm-generic/signal.h:62:2: note: array 'sig' declared here
+        unsigned long sig[_NSIG_WORDS];
+        ^
+In file included from /home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/drivers/kernelsu/hook/setuid_hook.c:26:
+In file included from /home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/sched/signal.h:6:
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/signal.h:97:25: error: array index 2 is past the end of the array (that has type 'unsigned long[1]') [-Werror,-Warray-bounds]
+                return (set->sig[3] | set->sig[2] |
+                                      ^        ~
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/uapi/asm-generic/signal.h:62:2: note: array 'sig' declared here
+        unsigned long sig[_NSIG_WORDS];
+        ^
+In file included from /home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/drivers/kernelsu/hook/setuid_hook.c:26:
+In file included from /home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/sched/signal.h:6:
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/signal.h:98:4: error: array index 1 is past the end of the array (that has type 'unsigned long[1]') [-Werror,-Warray-bounds]
+                        set->sig[1] | set->sig[0]) == 0;
+                        ^        ~
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/uapi/asm-generic/signal.h:62:2: note: array 'sig' declared here
+        unsigned long sig[_NSIG_WORDS];
+        ^
+In file included from /home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/drivers/kernelsu/hook/setuid_hook.c:26:
+In file included from /home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/sched/signal.h:6:
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/signal.h:100:11: error: array index 1 is past the end of the array (that has type 'unsigned long[1]') [-Werror,-Warray-bounds]
+                return (set->sig[1] | set->sig[0]) == 0;
+                        ^        ~
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/uapi/asm-generic/signal.h:62:2: note: array 'sig' declared here
+        unsigned long sig[_NSIG_WORDS];
+        ^
+In file included from /home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/drivers/kernelsu/hook/setuid_hook.c:26:
+In file included from /home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/sched/signal.h:6:
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/signal.h:113:11: error: array index 3 is past the end of the array (that has type 'const unsigned long[1]') [-Werror,-Warray-bounds]
+                return  (set1->sig[3] == set2->sig[3]) &&
+                         ^         ~
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/uapi/asm-generic/signal.h:62:2: note: array 'sig' declared here
+        unsigned long sig[_NSIG_WORDS];
+        ^
+In file included from /home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/drivers/kernelsu/hook/setuid_hook.c:26:
+In file included from /home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/sched/signal.h:6:
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/signal.h:113:27: error: array index 3 is past the end of the array (that has type 'const unsigned long[1]') [-Werror,-Warray-bounds]
+                return  (set1->sig[3] == set2->sig[3]) &&
+                                         ^         ~
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/uapi/asm-generic/signal.h:62:2: note: array 'sig' declared here
+        unsigned long sig[_NSIG_WORDS];
+        ^
+In file included from /home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/drivers/kernelsu/hook/setuid_hook.c:26:
+In file included from /home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/sched/signal.h:6:
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/linux/signal.h:114:5: error: array index 2 is past the end of the array (that has type 'const unsigned long[1]') [-Werror,-Warray-bounds]
+                        (set1->sig[2] == set2->sig[2]) &&
+                         ^         ~
+/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/include/uapi/asm-generic/signal.h:62:2: note: array 'sig' declared here
+        unsigned long sig[_NSIG_WORDS];
+        ^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+20 errors generated.
+make[4]: *** [/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/scripts/Makefile.build:250: drivers/kernelsu/hook/setuid_hook.o] Error 1
+make[3]: *** [/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/scripts/Makefile.build:503: drivers/kernelsu] Error 2
+make[3]: *** Waiting for unfinished jobs....
+make[2]: *** [/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/scripts/Makefile.build:503: drivers] Error 2
+make[1]: *** [/home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/Makefile:2056: .] Error 2
+make: *** [Makefile:256: __sub-make] Error 2
+-- Baseband-guard: flask.h found, skip generation
+-- Baseband-guard/compat: found file_ioctl_compat
+-- Baseband-guard/compat: found selinux_state
+-- Baseband-guard/compat: found modern block device api
+-- Baseband-guard: CONFIG_BBG enabled, now checking...
+-- Kernel Version: 6.1
+-- Baseband_guard: Found DEFINE_LSM,now checking CONFIG_LSM...
+-- CONFIG_LSM value: landlock,lockdown,baseband_guard,yama,loadpin,safesetid,integrity,selinux,smack,tomoyo,apparmor,bpf
+-- Baseband-guard: Okay, Baseband_guard was found in CONFIG_LSM
+-- BBG was enabled!
+-- BBG version: a54e0dc6
+-- BBG repo: https://github.com/vc-teahouse/Baseband-guard
+kernel: Checking config_data for CONFIG_IP6_NF_NAT...
+kernel: Warning: Unexpected CONFIG_IP6_NF_NAT value found
+# CONFIG_IP6_NF_NAT is not set
+kernel: Final CONFIG_IP6_NF_NAT value in config_data: 
+# CONFIG_IP6_NF_NAT is not set
+-- KernelSU-Next Git repo detected at: /home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/KernelSU-Next
+-- KernelSU-Next version: 33214
+-- KernelSU-Next tag: v3.3.0
+-- KernelSU-Next new DCACHE flush: 1
+-- KernelSU-Next Manager signature size: 0x3e6
+-- KernelSU-Next Manager signature hash: 79e590113c4c4c0c222978e413a5faa801666957b1212a328e46c00c69821bf7
+
+-- SUSFS_VERSION: v2.3.0
+Target //common:kernel_aarch64_dist failed to build
+Use --verbose_failures to see the command lines of failed build steps.
+ERROR: /home/runner/work/Super-Builders/Super-Builders/android14-6.1-138/common/BUILD.bazel:139:22 Middleman _middlemen/common_Skernel_Uaarch64_Udist-runfiles failed: (Exit 2): bash failed: error executing KernelBuild command (from target //common:kernel_aarch64) /bin/bash -c ... (remaining 1 argument skipped)
+INFO: Elapsed time: 944.693s, Critical Path: 918.21s
+INFO: 414 processes: 396 internal, 2 local, 16 processwrapper-sandbox.
+ERROR: Build did NOT complete successfully
